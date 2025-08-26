@@ -3,440 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campaign Inventory Dashboard - Enhanced</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Campaign Inventory Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+        p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+        .features {
+            margin-top: 2rem;
+            text-align: left;
+        }
+        .features h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .features ul {
+            color: #666;
+            line-height: 1.8;
+        }
+        .features li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-white">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-blue-400 mb-2">📊 Campaign Inventory Dashboard</h1>
-            <p class="text-gray-400">Real-time inventory tracking across all brands</p>
-            <p class="text-sm text-gray-500 mt-2">Last updated: <span id="lastUpdated"></span></p>
-        </header>
-
-        <!-- Overview Section (Static - Unfiltered) -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-6">📈 Brand Overview</h2>
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-6" id="overviewSection">
-                <div class="text-center">
-                    <div class="text-gray-400 text-sm">Loading...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-blue-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Total Slots</p>
-                        <p class="text-2xl font-bold text-white" id="totalSlots">Loading...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-green-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Booked</p>
-                        <p class="text-2xl font-bold text-green-400" id="totalBooked">Loading...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-yellow-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">On Hold</p>
-                        <p class="text-2xl font-bold text-yellow-400" id="totalOnHold">Loading...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-gray-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Available</p>
-                        <p class="text-2xl font-bold text-gray-400" id="totalAvailable">Loading...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filters Section -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-4">🔍 Filters</h2>
-            <div class="flex items-center space-x-4">
-                <!-- Product Filter -->
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Product</label>
-                                         <select id="productFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                         <option value="">All Products</option>
-                         <option value="Hosted_Content">Hosted Content</option>
-                         <option value="LVB_Mailshot">LVB Mailshot</option>
-                         <option value="Leading_Voice_Broadcast">Leading Voice Broadcast</option>
-                         <option value="Mailshot">Mailshot</option>
-                         <option value="Newsletter_Category_Sponsorship">Newsletter Category Sponsorship</option>
-                         <option value="Newsletter_Featured_Placement">Newsletter Featured Placement</option>
-                         <option value="Newsletter_Sponsorship">Newsletter Sponsorship</option>
-                         <option value="Original_Content_Production">Original Content Production</option>
-                         <option value="Weekender_Newsletter_Sponsorship">Weekender Newsletter Sponsorship</option>
-                     </select>
-                </div>
-                
-                <!-- Brand Filter -->
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Brand</label>
-                    <select id="brandFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All Brands</option>
-                        <option value="Accountancy Age">Accountancy Age</option>
-                        <option value="Bobsguide">Bobsguide</option>
-                        <option value="The CFO">The CFO</option>
-                        <option value="Global Treasurer">Global Treasurer</option>
-                        <option value="HRD Connect">HRD Connect</option>
-                    </select>
-                </div>
-                
-                <!-- Date Range -->
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Start Date</label>
-                    <input type="date" id="startDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">End Date</label>
-                    <input type="date" id="endDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="flex space-x-2">
-                    <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Search
-                    </button>
-                    <button onclick="resetFilters()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
-                        Reset
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Results Table -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-4">📊 Filtered Inventory Results</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-700">
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Product</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Brand</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Date</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Status</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Booking ID</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTable">
-                        <tr>
-                            <td colspan="5" class="py-8 text-center text-gray-500">Loading data...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Status Filter (Below Results) -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-4">🎯 Further Filter Results</h2>
-            <div class="flex items-center space-x-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Status Filter</label>
-                    <select id="statusFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All Statuses</option>
-                        <option value="Booked">Booked</option>
-                        <option value="Available">Available</option>
-                        <option value="On Hold">On Hold</option>
-                    </select>
-                </div>
-                
-                <div class="flex space-x-2">
-                    <button onclick="applyStatusFilter()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
-                        </svg>
-                        Filter by Status
-                    </button>
-                    <button onclick="clearStatusFilter()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
-                        Clear Status Filter
-                    </button>
-                </div>
-            </div>
+<body>
+    <div class="container">
+        <h1>📊 Campaign Inventory Dashboard</h1>
+        <p>Real-time inventory tracking and management system for campaign assets across multiple brands.</p>
+        
+        <a href="dashboard-enhanced.html" class="btn">🚀 Launch Dashboard</a>
+        
+        <div class="features">
+            <h3>✨ Features:</h3>
+            <ul>
+                <li>📈 Real-time brand overview with booking percentages</li>
+                <li>🔍 Advanced filtering by product, brand, and date range</li>
+                <li>📊 Interactive data tables with status indicators</li>
+                <li>📱 Responsive design for all devices</li>
+                <li>⚡ Fast and efficient data loading</li>
+            </ul>
         </div>
     </div>
-
-    <script>
-        // API Base URL - Change this to your deployed backend URL when ready
-        const API_BASE = 'http://localhost:5000/api';
-        // For production: const API_BASE = 'https://your-backend-url.com/api';
-        let allData = [];
-        let filteredData = [];
-        let overviewData = [];
-        
-        // Update last updated timestamp
-        function updateLastUpdated() {
-            const now = new Date();
-            document.getElementById('lastUpdated').textContent = now.toLocaleString();
-        }
-        
-        // Fetch overview data (static, unfiltered)
-        async function fetchOverviewData() {
-            try {
-                console.log('Fetching overview data...');
-                const response = await fetch(`${API_BASE}/inventory`);
-                const data = await response.json();
-                
-                overviewData = data;
-                updateOverviewSection(data);
-            } catch (error) {
-                console.error('Error fetching overview data:', error);
-            }
-        }
-        
-        // Update overview section
-        function updateOverviewSection(data) {
-            const overviewSection = document.getElementById('overviewSection');
-            
-            // Calculate brand-wise statistics
-            const brandStats = {};
-            const brands = ['AA', 'BG', 'CFO', 'GT', 'HRD'];
-            const brandNames = {
-                'AA': 'Accountancy Age',
-                'BG': 'Bobsguide', 
-                'CFO': 'The CFO',
-                'GT': 'Global Treasurer',
-                'HRD': 'HRD Connect'
-            };
-            
-            brands.forEach(brand => {
-                const brandData = data.filter(item => item.brand === brand);
-                const total = brandData.length;
-                const booked = brandData.filter(item => item.status === 'Booked').length;
-                const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
-                
-                brandStats[brand] = {
-                    name: brandNames[brand],
-                    total,
-                    booked,
-                    percentage
-                };
-            });
-            
-            // Create overview cards
-            overviewSection.innerHTML = brands.map(brand => {
-                const stats = brandStats[brand];
-                const colorClass = stats.percentage >= 70 ? 'text-green-400' : 
-                                 stats.percentage >= 40 ? 'text-yellow-400' : 'text-red-400';
-                const bgColorClass = stats.percentage >= 70 ? 'bg-green-500' : 
-                                   stats.percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500';
-                
-                return `
-                    <div class="text-center">
-                        <div class="text-lg font-bold text-white mb-2">${stats.name}</div>
-                        <div class="text-3xl font-bold ${colorClass} mb-2">${stats.percentage}%</div>
-                        <div class="text-sm text-gray-400 mb-3">${stats.booked}/${stats.total} Booked</div>
-                        <div class="w-full bg-gray-700 rounded-full h-2">
-                            <div class="${bgColorClass} h-2 rounded-full" style="width: ${stats.percentage}%"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        // Fetch data from API
-        async function fetchData(filters = {}) {
-            try {
-                console.log('Fetching data from API with filters:', filters);
-                
-                // Build query parameters
-                const params = new URLSearchParams();
-                if (filters.product) params.append('product', filters.product);
-                if (filters.brand) params.append('brand', filters.brand);
-                if (filters.startDate) params.append('start_date', filters.startDate);
-                if (filters.endDate) params.append('end_date', filters.endDate);
-                if (filters.status) params.append('status', filters.status);
-                
-                const url = `${API_BASE}/inventory?${params.toString()}`;
-                console.log('API URL:', url);
-                
-                const response = await fetch(url);
-                const data = await response.json();
-                console.log('Data fetched:', data.length, 'items');
-                console.log('Sample data:', data.slice(0, 3));
-                
-                allData = data;
-                filteredData = data;
-                updateSummaryCards(data);
-                updateResultsTable(data);
-                updateLastUpdated();
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                document.getElementById('resultsTable').innerHTML = `
-                    <tr>
-                        <td colspan="5" class="py-8 text-center text-red-500">Error loading data: ${error.message}</td>
-                    </tr>
-                `;
-            }
-        }
-        
-        // Update summary cards
-        function updateSummaryCards(data) {
-            const total = data.length;
-            const booked = data.filter(item => item.status === 'Booked').length;
-            const onHold = data.filter(item => item.status === 'Hold').length;
-            const available = data.filter(item => item.status === 'Not Booked').length;
-            
-            document.getElementById('totalSlots').textContent = total.toLocaleString();
-            document.getElementById('totalBooked').textContent = booked.toLocaleString();
-            document.getElementById('totalOnHold').textContent = onHold.toLocaleString();
-            document.getElementById('totalAvailable').textContent = available.toLocaleString();
-        }
-        
-        // Update results table
-        function updateResultsTable(data) {
-            const tbody = document.getElementById('resultsTable');
-            
-            if (data.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="py-8 text-center text-gray-500">No results found for the selected filters</td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = data.slice(0, 20).map(item => `
-                <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
-                    <td class="py-3 px-4">
-                        <span class="text-blue-400 cursor-pointer">${item.product || 'N/A'}</span>
-                    </td>
-                    <td class="py-3 px-4">${item.brand || 'N/A'}</td>
-                    <td class="py-3 px-4">${item.slot_date || 'N/A'}</td>
-                    <td class="py-3 px-4">
-                        <span class="px-2 py-1 rounded-full text-xs font-medium ${
-                            item.status === 'Booked' ? 'bg-green-500/20 text-green-300' :
-                            item.status === 'Hold' ? 'bg-yellow-500/20 text-yellow-300' :
-                            'bg-gray-500/20 text-gray-300'
-                        }">
-                            ${item.status || 'N/A'}
-                        </span>
-                    </td>
-                    <td class="py-3 px-4">${item.booking_id || 'N/A'}</td>
-                </tr>
-            `).join('');
-            
-            if (data.length > 20) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td colspan="5" class="py-4 text-center text-gray-400">
-                            Showing 20 of ${data.length} results
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-        
-        // Apply filters
-        function applyFilters() {
-            const product = document.getElementById('productFilter').value;
-            const brand = document.getElementById('brandFilter').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            
-            // Map brand names to codes
-            const brandMapping = {
-                'Accountancy Age': 'AA',
-                'Bobsguide': 'BG',
-                'The CFO': 'CFO',
-                'Global Treasurer': 'GT',
-                'HRD Connect': 'HRD'
-            };
-            
-            const filters = {};
-            if (product) filters.product = product;
-            if (brand) filters.brand = brandMapping[brand];
-            if (startDate) filters.startDate = startDate;
-            if (endDate) filters.endDate = endDate;
-            
-            console.log('Applying filters:', filters);
-            fetchData(filters);
-        }
-        
-        // Apply status filter (client-side filtering)
-        function applyStatusFilter() {
-            const statusFilter = document.getElementById('statusFilter').value;
-            
-            if (!statusFilter) {
-                filteredData = allData;
-            } else {
-                filteredData = allData.filter(item => {
-                    if (statusFilter === 'Booked') return item.status === 'Booked';
-                    if (statusFilter === 'Available') return item.status === 'Not Booked';
-                    if (statusFilter === 'On Hold') return item.status === 'Hold';
-                    return true;
-                });
-            }
-            
-            updateSummaryCards(filteredData);
-            updateResultsTable(filteredData);
-        }
-        
-        // Clear status filter
-        function clearStatusFilter() {
-            document.getElementById('statusFilter').value = '';
-            filteredData = allData;
-            updateSummaryCards(filteredData);
-            updateResultsTable(filteredData);
-        }
-        
-        // Reset filters
-        function resetFilters() {
-            document.getElementById('productFilter').value = '';
-            document.getElementById('brandFilter').value = '';
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            document.getElementById('statusFilter').value = '';
-            
-            fetchData(); // Fetch all data without filters
-        }
-        
-        // Load data on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, fetching data...');
-            fetchOverviewData(); // Load overview data first
-            fetchData(); // Load filtered data
-        });
-    </script>
 </body>
 </html>
