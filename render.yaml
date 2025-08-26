@@ -7,7 +7,7 @@ services:
     startCommand: gunicorn simple_dashboard:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.16
+        value: 3.11.7
       - key: DATABASE_URL
         sync: false
       - key: DB_HOST

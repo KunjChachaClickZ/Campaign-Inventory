@@ -15,7 +15,7 @@
 
 ### Step 2: Configure Web Service
 - **Name**: `campaign-inventory-api`
-- **Environment**: `Python 3`
+- **Environment**: `Python 3.11`
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `gunicorn simple_dashboard:app --bind 0.0.0.0:$PORT`
 
@@ -58,9 +58,10 @@ const API_BASE = 'https://your-service-name.onrender.com/api';
 
 ### Common Issues:
 1. **Build fails**: Check if all dependencies are in `requirements.txt`
-2. **Database connection fails**: Verify environment variables are set correctly
-3. **CORS errors**: Ensure CORS is enabled in Flask app
-4. **API not responding**: Check Render logs for errors
+2. **psycopg2 ImportError**: Ensure Python 3.11 is used (not 3.13)
+3. **Database connection fails**: Verify environment variables are set correctly
+4. **CORS errors**: Ensure CORS is enabled in Flask app
+5. **API not responding**: Check Render logs for errors
 
 ### Check Logs:
 - Render dashboard → Your service → **Logs** tab
