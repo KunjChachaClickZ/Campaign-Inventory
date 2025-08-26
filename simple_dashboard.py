@@ -135,47 +135,23 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         conn.close()
 
 def get_inventory_by_product_and_brand():
-    """Get inventory breakdown by product and brand for default state using all_inventory view"""
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
-    
+    """Get inventory breakdown by product and brand for default state using individual brand tables"""
+    # Use the same approach as get_inventory_summary but return data in the expected format
     try:
-        # Get inventory data from the all_inventory view for the target products
-        # Use a simple approach to avoid date parsing issues
-        query = """
-        SELECT 
-            "brand",
-            "Product Name - As per Listing Hub" as product,
-            COUNT(*) as total_slots,
-            COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
-            COUNT(CASE WHEN "Booked/Not Booked" = 'Hold' THEN 1 END) as on_hold,
-            COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' OR "Booked/Not Booked" IS NULL THEN 1 END) as available
-        FROM data_products.all_inventory
-        WHERE "Product Name - As per Listing Hub" IN (
-            'BM-S2-Newsletter Sponsorship',
-            'MailShot', 
-            'LB-1-Live Broadcast'
-        )
-        GROUP BY "brand", "Product Name - As per Listing Hub"
-        ORDER BY "brand", "Product Name - As per Listing Hub"
-        """
+        brands_data = get_inventory_summary()
         
-        cursor.execute(query)
-        results = cursor.fetchall()
-        
-        # Process results to create summary data
+        # Convert to the format expected by the dashboard
         processed_results = []
-        for row in results:
-            # pg8000 returns tuples, so we access by index: (brand, product, total_slots, booked, on_hold, available)
-            if row[2] > 0:  # total_slots
+        for brand_data in brands_data:
+            if brand_data['total_slots'] > 0:
                 processed_results.append({
-                    'brand': row[0],      # brand
-                    'product': row[1],    # product
-                    'total_slots': row[2], # total_slots
-                    'booked': row[3],     # booked
-                    'available': row[5],  # available
-                    'on_hold': row[4],    # on_hold
-                    'unclassified': 0
+                    'brand': brand_data['brand'],
+                    'product': 'General Inventory',  # Default product name
+                    'total_slots': brand_data['total_slots'],
+                    'booked': brand_data['booked'],
+                    'available': brand_data['available'],
+                    'on_hold': brand_data['on_hold'],
+                    'unclassified': brand_data['unclassified']
                 })
         
         return processed_results
@@ -183,9 +159,6 @@ def get_inventory_by_product_and_brand():
     except Exception as e:
         print(f"Error in get_inventory_by_product_and_brand: {e}")
         return []
-    finally:
-        cursor.close()
-        conn.close()
 
 def parse_slot_id(slot_id_string):
     """Parse slot ID string to extract product, date, week, and slot information"""
