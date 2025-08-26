@@ -166,14 +166,15 @@ def get_inventory_by_product_and_brand():
         # Process results to create summary data
         processed_results = []
         for row in results:
-            if row['total_slots'] > 0:
+            # pg8000 returns tuples, so we access by index: (brand, product, total_slots, booked, on_hold, available)
+            if row[2] > 0:  # total_slots
                 processed_results.append({
-                    'brand': row['brand'],
-                    'product': row['product'],
-                    'total_slots': row['total_slots'],
-                    'booked': row['booked'],
-                    'available': row['available'],
-                    'on_hold': row['on_hold'],
+                    'brand': row[0],      # brand
+                    'product': row[1],    # product
+                    'total_slots': row[2], # total_slots
+                    'booked': row[3],     # booked
+                    'available': row[5],  # available
+                    'on_hold': row[4],    # on_hold
                     'unclassified': 0
                 })
         
@@ -353,10 +354,11 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
             # Process results for this brand
             for row in brand_results:
                 try:
+                    # pg8000 returns tuples: (slot_id, slot_date, status, booking_id, product, brand)
                     # Determine status
-                    if row['status'] == 'Booked':
+                    if row[2] == 'Booked':  # status
                         display_status = 'Booked'
-                    elif row['status'] == 'Hold':
+                    elif row[2] == 'Hold':  # status
                         display_status = 'On Hold'
                     else:
                         display_status = 'Available'
@@ -364,11 +366,11 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     # Create result object matching MCP format
                     all_results.append({
                         'brand': brand_code,
-                        'slot_id': row['slot_id'] if row['slot_id'] is not None else 0,
-                        'slot_date': str(row['slot_date']) if row['slot_date'] is not None else '',
-                        'status': row['status'] if row['status'] is not None else '',
-                        'booking_id': row['booking_id'] if row['booking_id'] is not None else '',
-                        'product': row['product'] if row['product'] is not None else 'Mailshot'
+                        'slot_id': row[0] if row[0] is not None else 0,           # slot_id
+                        'slot_date': str(row[1]) if row[1] is not None else '',   # slot_date
+                        'status': row[2] if row[2] is not None else '',           # status
+                        'booking_id': row[3] if row[3] is not None else '',       # booking_id
+                        'product': row[4] if row[4] is not None else 'Mailshot'   # product
                     })
                     
                 except Exception as e:
@@ -428,10 +430,11 @@ def get_upcoming_deliverables():
         
         deliverables = []
         for row in results:
+            # pg8000 returns tuples: (client, product, deliverable_date)
             deliverables.append({
-                'client': row['client'],
-                'product': row['product'],
-                'deliverable_date': row['deliverable_date']
+                'client': row[0],           # client
+                'product': row[1],          # product
+                'deliverable_date': row[2]  # deliverable_date
             })
         
         return deliverables
@@ -537,15 +540,16 @@ def api_campaign_ledger():
         # Convert to list of dictionaries
         result = []
         for row in campaign_data:
+            # pg8000 returns tuples: (id, campaign_name, client, product, brand, start_date, end_date, status)
             result.append({
-                'id': row['id'],
-                'campaign_name': row['campaign_name'],
-                'client': row['client'],
-                'product': row['product'],
-                'brand': row['brand'],
-                'start_date': str(row['start_date']) if row['start_date'] else None,
-                'end_date': str(row['end_date']) if row['end_date'] else None,
-                'status': row['status']
+                'id': row[0],                                    # id
+                'campaign_name': row[1],                         # campaign_name
+                'client': row[2],                                # client
+                'product': row[3],                               # product
+                'brand': row[4],                                 # brand
+                'start_date': str(row[5]) if row[5] else None,   # start_date
+                'end_date': str(row[6]) if row[6] else None,     # end_date
+                'status': row[7]                                 # status
             })
         
         cursor.close()
