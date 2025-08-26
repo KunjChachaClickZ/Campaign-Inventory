@@ -1,6 +1,4 @@
 from flask import Flask, render_template_string, jsonify, request
-import psycopg2
-import psycopg2.extras
 from datetime import datetime, timedelta
 from flask_cors import CORS
 import os
@@ -8,6 +6,15 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Import pg8000 for PostgreSQL connection
+try:
+    import pg8000
+    PG8000_AVAILABLE = True
+    print("Using pg8000 for PostgreSQL connection")
+except ImportError as e:
+    print(f"Error: pg8000 not available: {e}")
+    PG8000_AVAILABLE = False
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -35,17 +42,24 @@ if os.getenv('DATABASE_URL'):
 
 def get_db_connection():
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        print("Database connection successful!")
-        return conn
+        if PG8000_AVAILABLE:
+            conn = pg8000.connect(**DB_CONFIG)
+            print("Database connection successful with pg8000!")
+            return conn
+        else:
+            raise Exception("pg8000 not available")
     except Exception as e:
         print(f"Database connection error: {e}")
         raise e
 
+def create_cursor(conn):
+    """Create a cursor"""
+    return conn.cursor()
+
 def get_inventory_summary(product_filter=None, brand_filter=None, start_date=None, end_date=None):
     """Get summary of all inventory data with optional filters"""
     conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor = create_cursor(conn)
     
     try:
         # Build base query with filters
@@ -89,15 +103,15 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
                 brand_data = cursor.fetchone()
                 
                 if brand_data:
-                    # Add unclassified to available (they're essentially available slots)
-                    available_with_unclassified = brand_data['available'] + brand_data['unclassified']
+                    # For pg8000, data comes as tuple: (brand, total_slots, booked, available, on_hold, unclassified)
+                    available_with_unclassified = brand_data[3] + brand_data[5]
                     brands_data.append({
                         'brand': brand_name,
-                        'total_slots': brand_data['total_slots'],
-                        'booked': brand_data['booked'],
+                        'total_slots': brand_data[1],
+                        'booked': brand_data[2],
                         'available': available_with_unclassified,
-                        'on_hold': brand_data['on_hold'],
-                        'unclassified': brand_data['unclassified']
+                        'on_hold': brand_data[4],
+                        'unclassified': brand_data[5]
                     })
             except Exception as e:
                 print(f"Error querying {table_name}: {e}")
@@ -123,7 +137,7 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
 def get_inventory_by_product_and_brand():
     """Get inventory breakdown by product and brand for default state using all_inventory view"""
     conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor = create_cursor(conn)
     
     try:
         # Get inventory data from the all_inventory view for the target products
@@ -217,7 +231,7 @@ def parse_slot_id(slot_id_string):
 def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_date=None, end_date=None):
     """Get individual inventory slots with client information for filtered results using individual brand tables"""
     conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor = create_cursor(conn)
     
     try:
         # Use individual brand tables instead of the problematic all_inventory view
@@ -375,7 +389,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
 def get_filtered_inventory_by_product(product_filter, brand_filter=None, start_date=None, end_date=None):
     """Get inventory filtered by product using campaign_ledger join"""
     conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor = create_cursor(conn)
     
     try:
         # This function will be implemented to handle product filtering
@@ -393,7 +407,7 @@ def get_filtered_inventory_by_product(product_filter, brand_filter=None, start_d
 def get_upcoming_deliverables():
     """Get upcoming deliverables for next 2 weeks (current week + next week) from campaign ledger"""
     conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor = create_cursor(conn)
     
     try:
         query = """
@@ -499,7 +513,7 @@ def api_campaign_ledger():
     try:
         # Get campaign ledger data from database
         conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor = create_cursor(conn)
         
         # Query campaign ledger data using actual column names from the database
         query = """
