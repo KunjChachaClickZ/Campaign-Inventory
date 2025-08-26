@@ -3,18 +3,35 @@ import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta
 from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Database configuration
+# Database configuration - use environment variables for deployment
 DB_CONFIG = {
-    'host': 'contentive-warehouse-instance-1.cq8sion7djdk.eu-west-2.rds.amazonaws.com',
-    'port': 5432,
-    'database': 'analytics',
-    'user': 'kunj.chacha@contentive.com',
-    'password': '(iRFw989b{5h'
+    'host': os.getenv('DB_HOST', 'contentive-warehouse-instance-1.cq8sion7djdk.eu-west-2.rds.amazonaws.com'),
+    'port': int(os.getenv('DB_PORT', 5432)),
+    'database': os.getenv('DB_NAME', 'analytics'),
+    'user': os.getenv('DB_USER', 'kunj.chacha@contentive.com'),
+    'password': os.getenv('DB_PASSWORD', '(iRFw989b{5h')
 }
+
+# Alternative: Use DATABASE_URL if provided (Render.com style)
+if os.getenv('DATABASE_URL'):
+    import urllib.parse
+    url = urllib.parse.urlparse(os.getenv('DATABASE_URL'))
+    DB_CONFIG = {
+        'host': url.hostname,
+        'port': url.port or 5432,
+        'database': url.path[1:],
+        'user': url.username,
+        'password': url.password
+    }
 
 def get_db_connection():
     try:
