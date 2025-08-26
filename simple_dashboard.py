@@ -56,6 +56,39 @@ def create_cursor(conn):
     """Create a cursor"""
     return conn.cursor()
 
+def convert_excel_date_to_readable(date_value):
+    """Convert Excel date number or string date to readable format"""
+    if date_value is None:
+        return ''
+    
+    try:
+        # If it's already a string date, return as is
+        if isinstance(date_value, str):
+            # Check if it's already a readable date format
+            if any(day in date_value for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']):
+                return date_value
+            # Check if it's a numeric string (Excel date)
+            if date_value.isdigit():
+                excel_date = int(date_value)
+            else:
+                return date_value
+        else:
+            # If it's a number, treat as Excel date
+            excel_date = int(date_value)
+        
+        # Convert Excel date number to datetime
+        # Excel dates are days since January 1, 1900
+        from datetime import datetime, timedelta
+        excel_epoch = datetime(1900, 1, 1)
+        actual_date = excel_epoch + timedelta(days=excel_date - 2)  # -2 for Excel's leap year bug
+        
+        # Format as "Monday, January 06, 2025"
+        return actual_date.strftime('%A, %B %d, %Y')
+        
+    except Exception as e:
+        print(f"Error converting date {date_value}: {e}")
+        return str(date_value) if date_value else ''
+
 def get_inventory_summary(product_filter=None, brand_filter=None, start_date=None, end_date=None):
     """Get summary of all inventory data with optional filters"""
     conn = get_db_connection()
@@ -340,7 +373,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     all_results.append({
                         'brand': brand_code,
                         'slot_id': row[0] if row[0] is not None else 0,           # slot_id
-                        'slot_date': str(row[1]) if row[1] is not None else '',   # slot_date
+                        'slot_date': convert_excel_date_to_readable(row[1]),      # slot_date
                         'status': row[2] if row[2] is not None else '',           # status
                         'booking_id': row[3] if row[3] is not None else '',       # booking_id
                         'product': row[4] if row[4] is not None else 'Mailshot'   # product
@@ -407,7 +440,7 @@ def get_upcoming_deliverables():
             deliverables.append({
                 'client': row[0],           # client
                 'product': row[1],          # product
-                'deliverable_date': row[2]  # deliverable_date
+                'deliverable_date': convert_excel_date_to_readable(row[2])  # deliverable_date
             })
         
         return deliverables
@@ -520,8 +553,8 @@ def api_campaign_ledger():
                 'client': row[2],                                # client
                 'product': row[3],                               # product
                 'brand': row[4],                                 # brand
-                'start_date': str(row[5]) if row[5] else None,   # start_date
-                'end_date': str(row[6]) if row[6] else None,     # end_date
+                'start_date': convert_excel_date_to_readable(row[5]),   # start_date
+                'end_date': convert_excel_date_to_readable(row[6]),     # end_date
                 'status': row[7]                                 # status
             })
         
