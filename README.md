@@ -57,7 +57,7 @@ A real-time inventory tracking dashboard for campaign management across multiple
 2. **GitHub Pages Deployment:**
    - Push to GitHub repository
    - Enable GitHub Pages in repository settings
-   - Access at: `https://kunjchacha.github.io/Campaign-Inventory/`
+   - Access at: `https://kunjchachaclickz.github.io/Campaign-Inventory/`
 
 ## 📡 API Endpoints
 
@@ -129,7 +129,7 @@ GET /api/inventory?product=Mailshot&brand=AA&start_date=2025-08-25&end_date=2025
 2. Go to Settings → Pages
 3. Select source: "Deploy from a branch"
 4. Choose branch: `main`
-5. Access URL: `https://kunjchacha.github.io/Campaign-Inventory/`
+5. Access URL: `https://kunjchachaclickz.github.io/Campaign-Inventory/`
 
 ### **Backend Deployment (Optional):**
 - Deploy Flask app to Render.com, Heroku, or similar

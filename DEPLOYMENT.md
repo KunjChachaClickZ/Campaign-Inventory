@@ -11,7 +11,7 @@
 1. Go to [Render.com](https://render.com) and sign up/login
 2. Click **"New +"** → **"Web Service"**
 3. Connect your GitHub account
-4. Select your repository: `Kunjchacha/Campaign-Inventory`
+4. Select your repository: `KunjChachaClickZ/Campaign-Inventory`
 
 ### Step 2: Configure Web Service
 - **Name**: `campaign-inventory-api`
@@ -51,7 +51,7 @@ const API_BASE = 'https://your-service-name.onrender.com/api';
 4. The workflow will automatically deploy your dashboard
 
 ## 🔗 Final URLs
-- **Frontend**: `https://kunjchacha.github.io/Campaign-Inventory/dashboard-enhanced.html`
+- **Frontend**: `https://kunjchachaclickz.github.io/Campaign-Inventory/dashboard-enhanced.html`
 - **Backend API**: `https://your-service-name.onrender.com/api`
 
 ## 🛠️ Troubleshooting

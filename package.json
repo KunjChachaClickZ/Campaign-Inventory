@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://Kunjchacha.github.io/Campaign-Inventory",
+  "homepage": "https://kunjchachaclickz.github.io/Campaign-Inventory",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
