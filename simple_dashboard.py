@@ -620,6 +620,161 @@ def api_current_week_inventory():
         print(f"Current Week Inventory API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/weekly-form-submissions')
+def api_weekly_form_submissions():
+    """API endpoint for form submissions data for a specific week"""
+    try:
+        # Get query parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if not start_date or not end_date:
+            return jsonify({"error": "start_date and end_date parameters are required"}), 400
+        
+        # Query form submissions from data_products.sponsorship_bookings_form_submissions
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        query = """
+        SELECT 
+            booking_id,
+            submit_timestamp,
+            email_id,
+            brand,
+            product_type,
+            start_date,
+            end_date,
+            client_name,
+            client_type,
+            created_at
+        FROM data_products.sponsorship_bookings_form_submissions
+        WHERE start_date >= %s AND end_date <= %s
+        ORDER BY submit_timestamp DESC
+        """
+        
+        cursor.execute(query, (start_date, end_date))
+        results = cursor.fetchall()
+        
+        # Convert to list of dictionaries
+        form_submissions = []
+        for row in results:
+            form_submissions.append({
+                'booking_id': row[0],
+                'submit_timestamp': row[1].isoformat() if row[1] else None,
+                'email_id': row[2],
+                'brand': row[3],
+                'product_type': row[4],
+                'start_date': row[5].isoformat() if row[5] else None,
+                'end_date': row[6].isoformat() if row[6] else None,
+                'client_name': row[7],
+                'client_type': row[8],
+                'created_at': row[9].isoformat() if row[9] else None
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(form_submissions)
+    except Exception as e:
+        print(f"Weekly Form Submissions API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/weekly-comparison')
+def api_weekly_comparison():
+    """API endpoint for weekly comparison between booked data and form submissions"""
+    try:
+        # Get query parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if not start_date or not end_date:
+            return jsonify({"error": "start_date and end_date parameters are required"}), 400
+        
+        # Get booked inventory data for the week
+        booked_data = get_filtered_inventory_slots(
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Get form submissions data for the week
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        form_query = """
+        SELECT 
+            booking_id,
+            brand,
+            product_type,
+            start_date,
+            end_date,
+            client_name
+        FROM data_products.sponsorship_bookings_form_submissions
+        WHERE start_date >= %s AND end_date <= %s
+        """
+        
+        cursor.execute(form_query, (start_date, end_date))
+        form_results = cursor.fetchall()
+        
+        # Convert form submissions to list of dictionaries
+        form_submissions = []
+        for row in form_results:
+            form_submissions.append({
+                'booking_id': row[0],
+                'brand': row[1],
+                'product_type': row[2],
+                'start_date': row[3].isoformat() if row[3] else None,
+                'end_date': row[4].isoformat() if row[4] else None,
+                'client_name': row[5]
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        # Count booked vs form submissions by brand
+        booked_by_brand = {}
+        form_by_brand = {}
+        
+        # Count booked data
+        for item in booked_data:
+            brand = item.get('brand', 'Unknown')
+            if brand not in booked_by_brand:
+                booked_by_brand[brand] = 0
+            if item.get('status') == 'Booked':
+                booked_by_brand[brand] += 1
+        
+        # Count form submissions
+        for item in form_submissions:
+            brand = item.get('brand', 'Unknown')
+            if brand not in form_by_brand:
+                form_by_brand[brand] = 0
+            form_by_brand[brand] += 1
+        
+        # Create comparison summary
+        comparison_data = {
+            'week_range': {
+                'start_date': start_date,
+                'end_date': end_date
+            },
+            'summary': {
+                'total_booked': sum(booked_by_brand.values()),
+                'total_form_submissions': sum(form_by_brand.values())
+            },
+            'by_brand': {}
+        }
+        
+        # Combine data by brand
+        all_brands = set(booked_by_brand.keys()) | set(form_by_brand.keys())
+        for brand in all_brands:
+            comparison_data['by_brand'][brand] = {
+                'booked': booked_by_brand.get(brand, 0),
+                'form_submissions': form_by_brand.get(brand, 0)
+            }
+        
+        return jsonify(comparison_data)
+    except Exception as e:
+        print(f"Weekly Comparison API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # HTML Template for the dashboard
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -900,4 +1055,4 @@ HTML_TEMPLATE = """
 """
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

@@ -5,6 +5,7 @@ import { ClientsModal } from './components/ClientsModal';
 import { ProductDetailCard } from './components/ProductDetailCard';
 import { PieChart } from './components/PieChart';
 import { ClientModal } from './components/ClientModal';
+import { WeeklyView } from './components/WeeklyView';
 import { useDatabase } from './hooks/useDatabase';
 
 const formatDateForInput = (date: Date): string => {
@@ -197,9 +198,17 @@ export const App = () => {
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 p-3 sm:p-4">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-100">📊 Commercial Inventory Dashboard</h1>
-            <p className="text-slate-400 text-sm sm:text-base">Track available slots for booking across all brands and products</p>
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            {/* Main Title */}
+            <div className="text-center lg:text-left">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-100">📊 Commercial Inventory Dashboard</h1>
+              <p className="text-slate-400 text-sm sm:text-base">Track available slots for booking across all brands and products</p>
+            </div>
+            
+            {/* Weekly View - Top Right */}
+            <div className="flex justify-center lg:justify-end">
+              <WeeklyView className="w-full max-w-xs" />
+            </div>
           </div>
         </div>
       </header>
