@@ -72,7 +72,27 @@
         <h1>📊 Campaign Inventory Dashboard</h1>
         <p>Real-time inventory tracking and management system for campaign assets across multiple brands.</p>
         
-        <a href="dashboard-enhanced.html" class="btn">🚀 Launch Dashboard</a>
+        <a href="dashboard-enhanced.html" class="btn" id="launchBtn">🚀 Launch Dashboard</a>
+        <script>
+            // Auto-redirect after 3 seconds
+            setTimeout(() => {
+                window.location.href = 'dashboard-enhanced.html';
+            }, 3000);
+            
+            // Update button text to show countdown
+            let countdown = 3;
+            const btn = document.getElementById('launchBtn');
+            const originalText = btn.textContent;
+            
+            const timer = setInterval(() => {
+                countdown--;
+                btn.textContent = `🚀 Launching in ${countdown}s...`;
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    btn.textContent = '🚀 Redirecting...';
+                }
+            }, 1000);
+        </script>
         
         <div class="features">
             <h3>✨ Features:</h3>
