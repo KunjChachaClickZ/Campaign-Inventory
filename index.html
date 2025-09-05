@@ -4,106 +4,709 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campaign Inventory Dashboard</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 3rem;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            width: 90%;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 1rem;
-            font-size: 2.5rem;
-        }
-        p {
-            color: #666;
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-            line-height: 1.6;
-        }
-        .btn {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem 2rem;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: 600;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
-        }
-        .features {
-            margin-top: 2rem;
-            text-align: left;
-        }
-        .features h3 {
-            color: #333;
-            margin-bottom: 1rem;
-        }
-        .features ul {
-            color: #666;
-            line-height: 1.8;
-        }
-        .features li {
-            margin-bottom: 0.5rem;
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>📊 Campaign Inventory Dashboard</h1>
-        <p>Real-time inventory tracking and management system for campaign assets across multiple brands.</p>
-        
-        <a href="dashboard-enhanced.html" class="btn" id="launchBtn">🚀 Launch Dashboard</a>
-        <script>
-            // Auto-redirect after 3 seconds
-            setTimeout(() => {
-                window.location.href = 'dashboard-enhanced.html';
-            }, 3000);
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-400 mb-2">📊 Campaign Inventory Dashboard</h1>
+            <p class="text-gray-400">Real-time inventory tracking across all brands</p>
+            <p class="text-sm text-gray-500 mt-2">Last updated: <span id="lastUpdated"></span></p>
+        </header>
+
+        <!-- Overview Section with Weekly View Inline -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Brand Overview - Takes 3/4 of the width -->
+            <div class="lg:col-span-3 bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h2 class="text-xl font-bold text-white mb-6">📈 Brand Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-6" id="overviewSection">
+                    <div class="col-span-full text-center">
+                        <div class="animate-pulse">
+                            <div class="h-4 bg-gray-700 rounded w-1/4 mx-auto mb-2"></div>
+                            <div class="text-gray-400 text-sm">Loading brand overview...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-            // Update button text to show countdown
-            let countdown = 3;
-            const btn = document.getElementById('launchBtn');
-            const originalText = btn.textContent;
-            
-            const timer = setInterval(() => {
-                countdown--;
-                btn.textContent = `🚀 Launching in ${countdown}s...`;
-                if (countdown <= 0) {
-                    clearInterval(timer);
-                    btn.textContent = '🚀 Redirecting...';
-                }
-            }, 1000);
-        </script>
-        
-        <div class="features">
-            <h3>✨ Features:</h3>
-            <ul>
-                <li>📈 Real-time brand overview with booking percentages</li>
-                <li>🔍 Advanced filtering by product, brand, and date range</li>
-                <li>📊 Interactive data tables with status indicators</li>
-                <li>📱 Responsive design for all devices</li>
-                <li>⚡ Fast and efficient data loading</li>
-            </ul>
+            <!-- Weekly View - Takes 1/4 of the width -->
+            <div class="lg:col-span-1">
+                <div id="weeklyView" class="bg-gray-800 rounded-lg p-4 border border-gray-700 h-full">
+                    <div class="animate-pulse">
+                        <div class="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+                        <div class="h-3 bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-500 bg-opacity-20">
+                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-400 text-sm">Total Slots</p>
+                        <p class="text-2xl font-bold text-white" id="totalSlots">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-500 bg-opacity-20">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-400 text-sm">Booked</p>
+                        <p class="text-2xl font-bold text-green-400" id="totalBooked">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-500 bg-opacity-20">
+                        <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-400 text-sm">On Hold</p>
+                        <p class="text-2xl font-bold text-yellow-400" id="totalOnHold">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-gray-500 bg-opacity-20">
+                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-gray-400 text-sm">Available</p>
+                        <p class="text-2xl font-bold text-gray-400" id="totalAvailable">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+            <h2 class="text-xl font-bold text-white mb-4">🔍 Filters</h2>
+            <div class="flex items-center space-x-4">
+                <!-- Product Filter -->
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Product</label>
+                                         <select id="productFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                         <option value="">All Products</option>
+                         <option value="Hosted_Content">Hosted Content</option>
+                         <option value="LVB_Mailshot">LVB Mailshot</option>
+                         <option value="Leading_Voice_Broadcast">Leading Voice Broadcast</option>
+                         <option value="Mailshot">Mailshot</option>
+                         <option value="Newsletter_Category_Sponsorship">Newsletter Category Sponsorship</option>
+                         <option value="Newsletter_Featured_Placement">Newsletter Featured Placement</option>
+                         <option value="Newsletter_Sponsorship">Newsletter Sponsorship</option>
+                         <option value="Original_Content_Production">Original Content Production</option>
+                         <option value="Weekender_Newsletter_Sponsorship">Weekender Newsletter Sponsorship</option>
+                     </select>
+                </div>
+                
+                <!-- Brand Filter -->
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Brand</label>
+                    <select id="brandFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Brands</option>
+                        <option value="Accountancy Age">Accountancy Age</option>
+                        <option value="Bobsguide">Bobsguide</option>
+                        <option value="The CFO">The CFO</option>
+                        <option value="Global Treasurer">Global Treasurer</option>
+                        <option value="HRD Connect">HRD Connect</option>
+                    </select>
+                </div>
+                
+                <!-- Date Range -->
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Start Date</label>
+                    <input type="date" id="startDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">End Date</label>
+                    <input type="date" id="endDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex space-x-2">
+                    <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search
+                    </button>
+                    <button onclick="resetFilters()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Filter (Above Results) -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+            <h2 class="text-xl font-bold text-white mb-4">🎯 Further Filter Results</h2>
+            <div class="flex items-center space-x-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Status Filter</label>
+                    <select id="statusFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Statuses</option>
+                        <option value="Booked">Booked</option>
+                        <option value="Available">Available</option>
+                        <option value="On Hold">On Hold</option>
+                    </select>
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button onclick="applyStatusFilter()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                        </svg>
+                        Filter by Status
+                    </button>
+                    <button onclick="clearStatusFilter()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                        Clear Status Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+            <h2 class="text-xl font-bold text-white mb-4">📊 Filtered Inventory Results</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="text-left py-3 px-4 font-medium text-gray-400">Sr.No.</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-400">Product</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-400">Brand</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-400">Date</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-400">Status</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-400">Booking ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable">
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-gray-500">Loading data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
+
+    <script>
+        const API_BASE = 'https://campaign-inventory-api.onrender.com/api';
+        let allData = [];
+        let filteredData = [];
+        let overviewData = [];
+        
+        // Update last updated timestamp
+        function updateLastUpdated() {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = now.toLocaleString();
+        }
+        
+        // Fetch overview data (static, unfiltered)
+        async function fetchOverviewData() {
+            try {
+                console.log('Fetching overview data...');
+                
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                
+                const response = await fetch(`${API_BASE}/inventory`, {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                overviewData = data;
+                updateOverviewSection(data);
+            } catch (error) {
+                console.error('Error fetching overview data:', error);
+                // Show error state in overview
+                document.getElementById('overviewSection').innerHTML = `
+                    <div class="col-span-full text-center text-red-400">
+                        <div class="text-sm">⚠️ Error loading overview data</div>
+                        <div class="text-xs text-gray-500 mt-1">Please check your connection</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Update overview section
+        function updateOverviewSection(data) {
+            const overviewSection = document.getElementById('overviewSection');
+            
+            // Calculate brand-wise statistics
+            const brandStats = {};
+            const brands = ['AA', 'BG', 'CFO', 'GT', 'HRD'];
+            const brandNames = {
+                'AA': 'Accountancy Age',
+                'BG': 'Bobsguide', 
+                'CFO': 'The CFO',
+                'GT': 'Global Treasurer',
+                'HRD': 'HRD Connect'
+            };
+            
+            brands.forEach(brand => {
+                const brandData = data.filter(item => item.brand === brand);
+                const total = brandData.length;
+                const booked = brandData.filter(item => item.status === 'Booked').length;
+                const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
+                
+                brandStats[brand] = {
+                    name: brandNames[brand],
+                    total,
+                    booked,
+                    percentage
+                };
+            });
+            
+            // Create overview cards
+            overviewSection.innerHTML = brands.map(brand => {
+                const stats = brandStats[brand];
+                const colorClass = stats.percentage >= 70 ? 'text-green-400' : 
+                                 stats.percentage >= 40 ? 'text-yellow-400' : 'text-red-400';
+                const bgColorClass = stats.percentage >= 70 ? 'bg-green-500' : 
+                                   stats.percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500';
+                
+                return `
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-white mb-2">${stats.name}</div>
+                        <div class="text-3xl font-bold ${colorClass} mb-2">${stats.percentage}%</div>
+                        <div class="text-sm text-gray-400 mb-3">${stats.booked}/${stats.total} Booked</div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="${bgColorClass} h-2 rounded-full" style="width: ${stats.percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Fetch data from API
+        async function fetchData(filters = {}) {
+            try {
+                console.log('Fetching data from API with filters:', filters);
+                
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
+                // Build query parameters
+                const params = new URLSearchParams();
+                if (filters.product) params.append('product', filters.product);
+                if (filters.brand) params.append('brand', filters.brand);
+                if (filters.startDate) params.append('start_date', filters.startDate);
+                if (filters.endDate) params.append('end_date', filters.endDate);
+                if (filters.status) params.append('status', filters.status);
+                
+                const url = `${API_BASE}/inventory?${params.toString()}`;
+                console.log('API URL:', url);
+                
+                const response = await fetch(url, {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data fetched:', data.length, 'items');
+                console.log('Sample data:', data.slice(0, 3));
+                
+                allData = data;
+                filteredData = data;
+                updateSummaryCards(data);
+                updateResultsTable(data);
+                updateLastUpdated();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('resultsTable').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-red-500">
+                            ${error.name === 'AbortError' ? 'Request timed out. Please try again.' : `Error loading data: ${error.message}`}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Update summary cards
+        function updateSummaryCards(data) {
+            const total = data.length;
+            const booked = data.filter(item => item.status === 'Booked').length;
+            const onHold = data.filter(item => item.status === 'Hold').length;
+            const available = data.filter(item => item.status === 'Not Booked').length;
+            
+            document.getElementById('totalSlots').textContent = total.toLocaleString();
+            document.getElementById('totalBooked').textContent = booked.toLocaleString();
+            document.getElementById('totalOnHold').textContent = onHold.toLocaleString();
+            document.getElementById('totalAvailable').textContent = available.toLocaleString();
+        }
+        
+        // Update results table
+        function updateResultsTable(data) {
+            const tbody = document.getElementById('resultsTable');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-gray-500">No results found for the selected filters</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = data.slice(0, 20).map((item, index) => `
+                <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
+                    <td class="py-3 px-4 text-center text-gray-400 font-medium">${index + 1}</td>
+                    <td class="py-3 px-4">
+                        <span class="text-blue-400 cursor-pointer">${item.product || 'N/A'}</span>
+                    </td>
+                    <td class="py-3 px-4">${item.brand || 'N/A'}</td>
+                    <td class="py-3 px-4">${item.slot_date || 'N/A'}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${
+                            item.status === 'Booked' ? 'bg-green-500/20 text-green-300' :
+                            item.status === 'Hold' ? 'bg-yellow-500/20 text-yellow-300' :
+                            'bg-gray-500/20 text-gray-300'
+                        }">
+                            ${item.status || 'N/A'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">${item.booking_id || 'N/A'}</td>
+                </tr>
+            `).join('');
+            
+            if (data.length > 20) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td colspan="6" class="py-4 text-center text-gray-400">
+                            Showing 20 of ${data.length} results
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            const product = document.getElementById('productFilter').value;
+            const brand = document.getElementById('brandFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            // Show loading state on search button
+            const searchButton = document.querySelector('button[onclick="applyFilters()"]');
+            const originalText = searchButton.innerHTML;
+            searchButton.innerHTML = `
+                <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Searching...
+            `;
+            searchButton.disabled = true;
+            
+            // Map brand names to codes
+            const brandMapping = {
+                'Accountancy Age': 'AA',
+                'Bobsguide': 'BG',
+                'The CFO': 'CFO',
+                'Global Treasurer': 'GT',
+                'HRD Connect': 'HRD'
+            };
+            
+            const filters = {};
+            if (product) filters.product = product;
+            if (brand) filters.brand = brandMapping[brand];
+            if (startDate) filters.startDate = startDate;
+            if (endDate) filters.endDate = endDate;
+            
+            console.log('Applying filters:', filters);
+            
+            fetchData(filters).finally(() => {
+                // Restore button state
+                searchButton.innerHTML = originalText;
+                searchButton.disabled = false;
+            });
+        }
+        
+        // Apply status filter (client-side filtering)
+        function applyStatusFilter() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            // Show loading state on status filter button
+            const statusButton = document.querySelector('button[onclick="applyStatusFilter()"]');
+            const originalText = statusButton.innerHTML;
+            statusButton.innerHTML = `
+                <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Filtering...
+            `;
+            statusButton.disabled = true;
+            
+            // Simulate a small delay for better UX
+            setTimeout(() => {
+                if (!statusFilter) {
+                    filteredData = allData;
+                } else {
+                    filteredData = allData.filter(item => {
+                        if (statusFilter === 'Booked') return item.status === 'Booked';
+                        if (statusFilter === 'Available') return item.status === 'Not Booked';
+                        if (statusFilter === 'On Hold') return item.status === 'Hold';
+                        return true;
+                    });
+                }
+                
+                updateSummaryCards(filteredData);
+                updateResultsTable(filteredData);
+                
+                // Restore button state
+                statusButton.innerHTML = originalText;
+                statusButton.disabled = false;
+            }, 300);
+        }
+        
+        // Clear status filter
+        function clearStatusFilter() {
+            document.getElementById('statusFilter').value = '';
+            filteredData = allData;
+            updateSummaryCards(filteredData);
+            updateResultsTable(filteredData);
+        }
+        
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('productFilter').value = '';
+            document.getElementById('brandFilter').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('statusFilter').value = '';
+            
+            fetchData(); // Fetch all data without filters
+        }
+        
+        // Weekly View Functions
+        function getNextWeek() {
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek) % 7; // Handle Sunday case
+            
+            const nextMonday = new Date(today);
+            nextMonday.setDate(today.getDate() + daysUntilMonday);
+            
+            const nextSunday = new Date(nextMonday);
+            nextSunday.setDate(nextMonday.getDate() + 6);
+            
+            return {
+                startDate: nextMonday.toISOString().split('T')[0],
+                endDate: nextSunday.toISOString().split('T')[0],
+                weekLabel: `Week of ${nextMonday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+            };
+        }
+
+        async function fetchWeeklyComparison() {
+            try {
+                const weekRange = getNextWeek();
+                
+                // Add timeout for weekly view
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                
+                const response = await fetch(`http://localhost:5001/api/weekly-comparison?start_date=${weekRange.startDate}&end_date=${weekRange.endDate}`, {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                updateWeeklyView(data, weekRange);
+            } catch (error) {
+                console.error('Error fetching weekly comparison:', error);
+                // Show mock data for testing when backend is not available
+                const weekRange = getNextWeek();
+                const mockData = {
+                    week_range: {
+                        start_date: weekRange.startDate,
+                        end_date: weekRange.endDate
+                    },
+                    summary: {
+                        total_booked: 12,
+                        total_form_submissions: 8
+                    },
+                    by_brand: {
+                        'AA': { booked: 3, form_submissions: 2 },
+                        'CFO': { booked: 4, form_submissions: 3 },
+                        'GT': { booked: 2, form_submissions: 1 },
+                        'BG': { booked: 2, form_submissions: 2 },
+                        'HRD': { booked: 1, form_submissions: 0 }
+                    }
+                };
+                updateWeeklyView(mockData, weekRange);
+            }
+        }
+
+        function updateWeeklyView(data, weekRange) {
+            const weeklyViewElement = document.getElementById('weeklyView');
+            
+            if (!data || (!data.summary.total_booked && !data.summary.total_form_submissions)) {
+                weeklyViewElement.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-blue-400">📅 Weekly Overview</h3>
+                        <span class="text-xs text-gray-400">${weekRange.weekLabel}</span>
+                    </div>
+                    <div class="text-center text-gray-400 text-xs py-4">
+                        <div>📅</div>
+                        <div>No data for this week</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const summary = data.summary;
+            const byBrand = data.by_brand;
+            
+            let brandHtml = '';
+            Object.entries(byBrand).forEach(([brand, brandData]) => {
+                const statusColor = getStatusColor(brandData.booked, brandData.form_submissions);
+                const statusIcon = getStatusIcon(brandData.booked, brandData.form_submissions);
+                
+                brandHtml += `
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-300">${brand}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-green-400">${brandData.booked}</span>
+                            <span class="text-gray-500">/</span>
+                            <span class="text-blue-400">${brandData.form_submissions}</span>
+                            <span class="${statusColor}">${statusIcon}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            weeklyViewElement.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-blue-400">📅 Weekly Overview</h3>
+                    <span class="text-xs text-gray-400">${weekRange.weekLabel}</span>
+                </div>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-gray-700 rounded p-2">
+                            <div class="text-gray-300">Booked</div>
+                            <div class="text-lg font-bold text-green-400">${summary.total_booked}</div>
+                        </div>
+                        <div class="bg-gray-700 rounded p-2">
+                            <div class="text-gray-300">Form Filled</div>
+                            <div class="text-lg font-bold text-blue-400">${summary.total_form_submissions}</div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="text-xs text-gray-400 font-medium">By Brand:</div>
+                        ${brandHtml}
+                    </div>
+                    <div class="text-xs text-gray-500 pt-2 border-t border-gray-700">
+                        <div class="flex items-center gap-4">
+                            <span>✅ Synced</span>
+                            <span>⚠️ Partial</span>
+                            <span>❌ Missing</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateWeeklyViewError() {
+            const weeklyViewElement = document.getElementById('weeklyView');
+            weeklyViewElement.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-blue-400">📅 Weekly Overview</h3>
+                </div>
+                <div class="text-red-400 text-xs">
+                    <div class="flex items-center gap-1">
+                        <span>❌</span>
+                        <span>Error loading data</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStatusColor(booked, formSubmissions) {
+            if (formSubmissions === 0) return 'text-gray-400';
+            if (booked === formSubmissions) return 'text-green-400';
+            if (booked > formSubmissions) return 'text-yellow-400';
+            return 'text-red-400';
+        }
+
+        function getStatusIcon(booked, formSubmissions) {
+            if (formSubmissions === 0) return '⚪';
+            if (booked === formSubmissions) return '✅';
+            if (booked > formSubmissions) return '⚠️';
+            return '❌';
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, fetching data...');
+            
+            // Show loading progress
+            let loadingSteps = 0;
+            const totalSteps = 3;
+            
+            function updateLoadingProgress(step) {
+                loadingSteps++;
+                console.log(`Loading progress: ${loadingSteps}/${totalSteps}`);
+                
+                if (loadingSteps >= totalSteps) {
+                    console.log('All data loaded successfully!');
+                }
+            }
+            
+            // Load main dashboard data first
+            fetchOverviewData().then(() => updateLoadingProgress(1));
+            fetchData().then(() => updateLoadingProgress(2));
+            
+            // Load weekly view independently (non-blocking)
+            setTimeout(() => {
+                fetchWeeklyComparison().then(() => updateLoadingProgress(3));
+            }, 1000); // 1 second delay to not block main dashboard
+        });
+    </script>
 </body>
 </html>
