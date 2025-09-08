@@ -492,8 +492,22 @@
                     percentage
                 };
             });
+            } else if (Array.isArray(data)) {
+                // If data is an array (from updated brand-overview API), process it
+                console.log('Processing array data from brand-overview API');
+                data.forEach(brandData => {
+                    const brand = brandData.brand;
+                    if (brands.includes(brand)) {
+                        brandStats[brand] = {
+                            name: brandData.name || brandNames[brand] || brand,
+                            total: brandData.total_slots || 0,
+                            booked: brandData.booked || 0,
+                            percentage: brandData.percentage || 0
+                        };
+                    }
+                });
             } else if (typeof data === 'object' && data !== null) {
-                // If data is an object (from brand-overview API), process directly
+                // If data is an object (from old brand-overview API), process directly
                 Object.keys(data).forEach(brandKey => {
                     const brandData = data[brandKey];
                     const total = brandData.total_slots || 0;
@@ -1008,66 +1022,22 @@
                     if (fallbackResponse.ok) {
                         const inventoryData = await fallbackResponse.json();
                         
-                        // Get real client data from campaign ledger API
+                        // Get real client data from clients API
                         try {
-                            const clientResponse = await fetch(`${API_BASE}/campaign-ledger?limit=1000`);
+                            const clientResponse = await fetch(`${API_BASE}/clients`);
                             if (clientResponse.ok) {
                                 const clientData = await clientResponse.json();
                                 
-                                // Process real client data
-                                const clientMap = new Map();
-                                clientData.forEach(item => {
-                                    if (item.client && item.client.trim()) {
-                                        const clientName = item.client.trim();
-                                        if (!clientMap.has(clientName)) {
-                                            clientMap.set(clientName, {
-                                                client_name: clientName,
-                                                total_bookings: 0,
-                                                brands: new Set()
-                                            });
-                                        }
-                                        const client = clientMap.get(clientName);
-                                        client.total_bookings++;
-                                        if (item.brand) {
-                                            client.brands.add(item.brand);
-                                        }
-                                    }
-                                });
-                                
-                                const clients = Array.from(clientMap.values()).map(client => ({
-                                    client_name: client.client_name,
-                                    total_bookings: client.total_bookings,
-                                    brands: Array.from(client.brands)
-                                }));
-                                
-                                console.log(`Loaded ${clients.length} real clients from campaign ledger`);
+                                console.log(`Loaded ${clientData.length} real clients from clients API`);
                                 
                                 // Process the real client data
-                                const uniqueClients = new Map();
-                                clients.forEach(client => {
-                                    if (!uniqueClients.has(client.client_name)) {
-                                        uniqueClients.set(client.client_name, {
-                                            name: client.client_name,
-                                            totalBookings: 0,
-                                            brands: new Set()
-                                        });
-                                    }
-                                    const clientData = uniqueClients.get(client.client_name);
-                                    clientData.totalBookings += client.total_bookings || 1;
-                                    if (client.brands) {
-                                        client.brands.forEach(brand => clientData.brands.add(brand));
-                                    }
-                                });
+                                allClientsData = clientData.map(client => ({
+                                    name: client.client_name,
+                                    totalBookings: client.total_bookings,
+                                    brands: client.brands.join(', ')
+                                })).sort((a, b) => a.name.localeCompare(b.name));
                                 
-                                // Convert to array and sort
-                                allClientsData = Array.from(uniqueClients.values())
-                                    .map(client => ({
-                                        ...client,
-                                        brands: Array.from(client.brands).join(', ')
-                                    }))
-                                    .sort((a, b) => a.name.localeCompare(b.name));
-                                
-                                console.log(`Loaded ${allClientsData.length} unique clients from real data`);
+                                console.log(`Processed ${allClientsData.length} unique clients from real data`);
                                 return;
                             }
                         } catch (clientError) {

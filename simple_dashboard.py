@@ -107,10 +107,10 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         SELECT 
             'Accountancy Age' as brand,
             COUNT(DISTINCT inv."ID") as total_slots,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Hold' THEN inv."ID" END) as on_hold,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IS NULL OR inv."Booked/Not Booked" NOT IN ('Booked', 'Not Booked', 'Hold') THEN inv."ID" END) as unclassified
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" ILIKE '%booked%' THEN inv."ID" END) as booked,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" ILIKE '%not booked%' THEN inv."ID" END) as available,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" ILIKE '%hold%' THEN inv."ID" END) as on_hold,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IS NULL OR inv."Booked/Not Booked" NOT ILIKE '%booked%' AND inv."Booked/Not Booked" NOT ILIKE '%not booked%' AND inv."Booked/Not Booked" NOT ILIKE '%hold%' THEN inv."ID" END) as unclassified
         FROM campaign_metadata.aa_inventory inv
         LEFT JOIN campaign_metadata.campaign_ledger cl 
             ON inv."Booking ID" = cl."Booking ID" 
@@ -593,23 +593,21 @@ def api_brand_overview():
         # Get brand overview data
         brands_data = get_inventory_summary()
         
-        # Format the data for the frontend
-        result = {}
+        # Format the data for the frontend - return array format that frontend expects
+        result = []
         for brand_data in brands_data:
             brand_name = brand_data['brand']
-            result[brand_name] = {
+            brand_code = brand_data.get('brand_code', brand_name.split()[0][:2].upper())
+            
+            result.append({
+                'brand': brand_code,
+                'name': brand_name,
                 'total_slots': brand_data['total_slots'],
                 'booked': brand_data['booked'],
                 'on_hold': brand_data['on_hold'],
-                'not_booked': brand_data['available'],  # This maps to 'available' in our data
-                'tableSources': [
-                    {
-                        'label': brand_name,
-                        'value': brand_name.lower().replace(' ', '_'),
-                        'count': brand_data['total_slots']
-                    }
-                ]
-            }
+                'available': brand_data['available'],
+                'percentage': round((brand_data['booked'] / brand_data['total_slots']) * 100) if brand_data['total_slots'] > 0 else 0
+            })
         
         return jsonify(result)
     except Exception as e:
@@ -878,142 +876,30 @@ def api_clients():
         conn = get_db_connection()
         cursor = create_cursor(conn)
         
-        # Query to get unique clients with their actual inventory slot counts
-        # This counts actual booked inventory slots, not campaign_ledger records
+        # Simple query to get unique clients from campaign ledger
         query = """
-        WITH client_inventory_counts AS (
-            SELECT 
-                COALESCE(cl."Client Name", 'No Client') as client_name,
-                COALESCE(cl."Contract ID", 'N/A') as contract_id,
-                cl."Brand" as brand,
-                COUNT(DISTINCT inv."ID") as inventory_slots
-            FROM campaign_metadata.cfo_inventory inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = 'CFO'
-            WHERE inv."ID" >= 8000
-            AND inv."Booked/Not Booked" = 'Booked'
-            AND cl."Client Name" IS NOT NULL 
-            AND cl."Client Name" != ''
-            AND TRIM(cl."Client Name") != ''
-            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
-            
-            UNION ALL
-            
-            SELECT 
-                COALESCE(cl."Client Name", 'No Client') as client_name,
-                COALESCE(cl."Contract ID", 'N/A') as contract_id,
-                cl."Brand" as brand,
-                COUNT(DISTINCT inv."ID") as inventory_slots
-            FROM campaign_metadata.aa_inventory inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = 'AA'
-            WHERE inv."ID" >= 8000
-            AND inv."Booked/Not Booked" = 'Booked'
-            AND cl."Client Name" IS NOT NULL 
-            AND cl."Client Name" != ''
-            AND TRIM(cl."Client Name") != ''
-            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
-            
-            UNION ALL
-            
-            SELECT 
-                COALESCE(cl."Client Name", 'No Client') as client_name,
-                COALESCE(cl."Contract ID", 'N/A') as contract_id,
-                cl."Brand" as brand,
-                COUNT(DISTINCT inv."ID") as inventory_slots
-            FROM campaign_metadata.bob_inventory inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = 'BG'
-            WHERE inv."ID" >= 8000
-            AND inv."Booked/Not Booked" = 'Booked'
-            AND cl."Client Name" IS NOT NULL 
-            AND cl."Client Name" != ''
-            AND TRIM(cl."Client Name") != ''
-            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
-            
-            UNION ALL
-            
-            SELECT 
-                COALESCE(cl."Client Name", 'No Client') as client_name,
-                COALESCE(cl."Contract ID", 'N/A') as contract_id,
-                cl."Brand" as brand,
-                COUNT(DISTINCT inv."ID") as inventory_slots
-            FROM campaign_metadata.gt_inventory inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = 'GT'
-            WHERE inv."ID" >= 8000
-            AND inv."Booked/Not Booked" = 'Booked'
-            AND cl."Client Name" IS NOT NULL 
-            AND cl."Client Name" != ''
-            AND TRIM(cl."Client Name") != ''
-            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
-            
-            UNION ALL
-            
-            SELECT 
-                COALESCE(cl."Client Name", 'No Client') as client_name,
-                COALESCE(cl."Contract ID", 'N/A') as contract_id,
-                cl."Brand" as brand,
-                COUNT(DISTINCT inv."ID") as inventory_slots
-            FROM campaign_metadata.hrd_inventory inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = 'HRD'
-            WHERE inv."ID" >= 8000
-            AND inv."Booked/Not Booked" = 'Booked'
-            AND cl."Client Name" IS NOT NULL 
-            AND cl."Client Name" != ''
-            AND TRIM(cl."Client Name") != ''
-            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
-            
-            UNION ALL
-            
-            SELECT 
-                COALESCE(cl."Client Name", 'No Client') as client_name,
-                COALESCE(cl."Contract ID", 'N/A') as contract_id,
-                cl."Brand" as brand,
-                COUNT(DISTINCT inv."ID") as inventory_slots
-            FROM campaign_metadata.cz_inventory inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = 'CZ'
-            WHERE inv."ID" >= 8000
-            AND inv."Booked/Not Booked" = 'Booked'
-            AND cl."Client Name" IS NOT NULL 
-            AND cl."Client Name" != ''
-            AND TRIM(cl."Client Name") != ''
-            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
-        )
-        SELECT 
-            client_name,
-            contract_id,
-            brand,
-            SUM(inventory_slots) as total_inventory_slots
-        FROM client_inventory_counts
-        GROUP BY client_name, contract_id, brand
-        ORDER BY client_name, brand, contract_id
+        SELECT DISTINCT 
+            TRIM("Client Name") as client_name,
+            COUNT(*) as booking_count,
+            STRING_AGG(DISTINCT "Brand", ', ' ORDER BY "Brand") as brands
+        FROM campaign_metadata.campaign_ledger 
+        WHERE "Client Name" IS NOT NULL 
+        AND "Client Name" != '' 
+        AND TRIM("Client Name") != ''
+        GROUP BY TRIM("Client Name")
+        ORDER BY booking_count DESC, client_name
         """
         
         cursor.execute(query)
         results = cursor.fetchall()
         
-        # Process results to create client list with accurate counts
+        # Process results to create client list
         clients = []
         for row in results:
-            client_name = row[0] if row[0] else 'Unknown Client'
-            contract_id = row[1] if row[1] else 'N/A'
-            brand = row[2] if row[2] else 'Unknown Brand'
-            inventory_slots = row[3] if row[3] else 0
-            
             clients.append({
-                'client_name': client_name,
-                'contract_id': contract_id,
-                'brand': brand,
-                'booking_count': inventory_slots  # This now represents actual inventory slots
+                'client_name': row[0],
+                'total_bookings': row[1],
+                'brands': row[2].split(', ') if row[2] else []
             })
         
         cursor.close()
