@@ -311,13 +311,18 @@
             
             try {
                 console.log(`Fetching overview data (attempt ${retryCount + 1}/${maxRetries + 1})`);
+                console.log(`API URL: ${API_BASE}/brand-overview`);
                 
                 // Add timeout to prevent hanging
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
                 
                 const response = await fetch(`${API_BASE}/brand-overview`, {
-                    signal: controller.signal
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 clearTimeout(timeoutId);
@@ -341,12 +346,54 @@
                 
             } catch (error) {
                 console.error(`Error fetching overview data (attempt ${retryCount + 1}):`, error);
+                console.error(`Error details:`, {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
                 
                 if (retryCount < maxRetries && error.name !== 'AbortError') {
                     console.log(`Retrying in ${retryDelay}ms...`);
                     setTimeout(() => fetchOverviewData(retryCount + 1), retryDelay);
                 } else {
-                    // Show enhanced error state in overview
+                    // Try fallback: load from main inventory endpoint
+                    console.log('Trying fallback: loading from main inventory endpoint...');
+                    try {
+                        const fallbackResponse = await fetch(`${API_BASE}/inventory?limit=1000`, {
+                            signal: controller.signal,
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (fallbackResponse.ok) {
+                            const fallbackData = await fallbackResponse.json();
+                            console.log('Fallback data loaded, generating brand overview...');
+                            
+                            // Generate brand overview from inventory data
+                            const brandStats = {};
+                            fallbackData.forEach(item => {
+                                if (!brandStats[item.brand]) {
+                                    brandStats[item.brand] = { booked: 0, total: 0, on_hold: 0 };
+                                }
+                                brandStats[item.brand].total++;
+                                if (item.status === 'Booked') brandStats[item.brand].booked++;
+                                if (item.status === 'Hold') brandStats[item.brand].on_hold++;
+                            });
+                            
+                            // Cache and display the generated data
+                            setCache('overview', brandStats);
+                            overviewData = brandStats;
+                            updateOverviewSection(brandStats);
+                            console.log('Brand overview generated from fallback data');
+                            return;
+                        }
+                    } catch (fallbackError) {
+                        console.error('Fallback also failed:', fallbackError);
+                    }
+                    
+                    // Show enhanced error state in overview with specific error details
                 document.getElementById('overviewSection').innerHTML = `
                     <div class="col-span-full text-center text-red-400">
                             <div class="mb-4">
@@ -356,7 +403,8 @@
                                     </svg>
                                 </div>
                                 <div class="text-lg font-semibold mb-2">Unable to load brand data</div>
-                                <div class="text-sm text-gray-400 mb-4">This might be due to a network issue or server problem</div>
+                                <div class="text-sm text-gray-400 mb-2">Error: ${error.name} - ${error.message}</div>
+                                <div class="text-xs text-gray-500 mb-4">Check browser console for more details</div>
                             </div>
                             <div class="flex flex-col sm:flex-row gap-3 justify-center">
                                 <button onclick="fetchOverviewData()" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors font-medium">
