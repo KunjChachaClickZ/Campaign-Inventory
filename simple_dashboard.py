@@ -102,36 +102,40 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         if start_date and end_date:
             base_where += f' AND "Dates" >= \'{start_date}\' AND "Dates" <= \'{end_date}\''
         
-        # Get summary from all inventory tables - using DISTINCT for accurate counting
+        # Get summary from all inventory tables - using same logic as inventory API
         query = f"""
         SELECT 
             'Accountancy Age' as brand,
-            COUNT(DISTINCT "ID") as total_slots,
-            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Booked' THEN "ID" END) as booked,
-            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN "ID" END) as available,
-            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Hold' THEN "ID" END) as on_hold,
-            COUNT(DISTINCT CASE WHEN "Booked/Not Booked" IS NULL OR "Booked/Not Booked" NOT IN ('Booked', 'Not Booked', 'Hold') THEN "ID" END) as unclassified
-        FROM campaign_metadata.aa_inventory
-        {base_where}
+            COUNT(DISTINCT inv."ID") as total_slots,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Hold' THEN inv."ID" END) as on_hold,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IS NULL OR inv."Booked/Not Booked" NOT IN ('Booked', 'Not Booked', 'Hold') THEN inv."ID" END) as unclassified
+        FROM campaign_metadata.aa_inventory inv
+        LEFT JOIN campaign_metadata.campaign_ledger cl 
+            ON inv."Booking ID" = cl."Booking ID" 
+            AND cl."Brand" = 'AA'
+        {base_where.replace('"ID"', 'inv."ID"')}
         """
         
         # Execute queries for each brand
         brands_data = []
         brand_tables = [
-            ('Accountancy Age', 'aa_inventory'),
-            ('Bobsguide', 'bob_inventory'),
-            ('The CFO', 'cfo_inventory'),
-            ('Global Treasurer', 'gt_inventory'),
-            ('HRD Connect', 'hrd_inventory')
+            ('Accountancy Age', 'aa_inventory', 'AA'),
+            ('Bobsguide', 'bob_inventory', 'BG'),
+            ('The CFO', 'cfo_inventory', 'CFO'),
+            ('Global Treasurer', 'gt_inventory', 'GT'),
+            ('HRD Connect', 'hrd_inventory', 'HRD'),
+            ('ClickZ', 'cz_inventory', 'CZ')
         ]
         
-        for brand_name, table_name in brand_tables:
+        for brand_name, table_name, brand_code in brand_tables:
             # Skip if brand filter is specified and doesn't match
             if brand_filter and brand_filter != brand_name:
                 continue
                 
             try:
-                brand_query = query.replace('aa_inventory', table_name)
+                brand_query = query.replace('aa_inventory', table_name).replace('AA', brand_code)
                 cursor.execute(brand_query)
                 brand_data = cursor.fetchone()
                 
@@ -235,7 +239,7 @@ def parse_slot_id(slot_id_string):
     
     return None
 
-def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_date=None, end_date=None):
+def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_date=None, end_date=None, client_filter=None):
     """Get individual inventory slots with client information for filtered results using individual brand tables"""
     conn = get_db_connection()
     cursor = create_cursor(conn)
@@ -250,7 +254,8 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
             ('bob_inventory', 'BG'),
             ('cfo_inventory', 'CFO'),
             ('gt_inventory', 'GT'),
-            ('hrd_inventory', 'HRD')
+            ('hrd_inventory', 'HRD'),
+            ('cz_inventory', 'CZ')
         ]
         
         for table_name, brand_code in brand_tables:
@@ -263,23 +268,29 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     'Bobsguide': 'BG', 
                     'The CFO': 'CFO',
                     'Global Treasurer': 'GT',
-                    'HRD Connect': 'HRD'
+                    'HRD Connect': 'HRD',
+                    'ClickZ': 'CZ'
                 }
                 expected_brand_code = brand_mapping.get(brand_filter, brand_filter)
                 if brand_code != expected_brand_code:
                     continue
                 
-            # Build query for this brand table - using DISTINCT to eliminate duplicates
+            # Build query for this brand table with client information from campaign_ledger
             query = f"""
-            SELECT DISTINCT ON ("ID")
-                "ID" as slot_id,
-                "Dates" as slot_date,
-                "Booked/Not Booked" as status,
-                "Booking ID" as booking_id,
-                "Media_Asset" as product,
-                '{brand_code}' as brand
-            FROM campaign_metadata.{table_name}
-            WHERE "ID" >= 8000
+            SELECT DISTINCT ON (inv."ID")
+                inv."ID" as slot_id,
+                inv."Dates" as slot_date,
+                inv."Booked/Not Booked" as status,
+                inv."Booking ID" as booking_id,
+                inv."Media_Asset" as product,
+                '{brand_code}' as brand,
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Contract ID", 'N/A') as contract_id
+            FROM campaign_metadata.{table_name} inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = '{brand_code}'
+            WHERE inv."ID" >= 8000
             """
             
             # Add date filter if specified - now properly implemented
@@ -347,10 +358,22 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                 }
                 
                 db_product_name = product_mapping.get(product_filter, product_filter)
-                query += f" AND \"Media_Asset\" = '{db_product_name}'"
+                query += f" AND inv.\"Media_Asset\" = '{db_product_name}'"
             
-            # Add ORDER BY clause for DISTINCT ON
-            query += " ORDER BY \"ID\", \"Dates\" DESC"
+            # Add client filter if specified
+            if client_filter and client_filter != 'All':
+                query += f" AND cl.\"Client Name\" = '{client_filter}'"
+            
+            # Add ORDER BY clause for DISTINCT ON - prioritize Booked status
+            query += """ ORDER BY inv."ID", 
+                CASE 
+                    WHEN inv."Booked/Not Booked" = 'Booked' THEN 1
+                    WHEN inv."Booked/Not Booked" = 'Hold' THEN 2
+                    WHEN inv."Booked/Not Booked" = 'Hold ' THEN 2
+                    WHEN inv."Booked/Not Booked" = 'hold' THEN 2
+                    WHEN inv."Booked/Not Booked" = 'On hold' THEN 2
+                    ELSE 3
+                END, inv."Dates" DESC"""
             
             print(f"Executing query for {table_name}: {query}")
             cursor.execute(query)
@@ -360,7 +383,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
             # Process results for this brand
             for row in brand_results:
                 try:
-                    # pg8000 returns tuples: (slot_id, slot_date, status, booking_id, product, brand)
+                    # pg8000 returns tuples: (slot_id, slot_date, status, booking_id, product, brand, client_name, contract_id)
                     # Determine status
                     if row[2] == 'Booked':  # status
                         display_status = 'Booked'
@@ -376,7 +399,9 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                         'slot_date': convert_excel_date_to_readable(row[1]),      # slot_date
                         'status': row[2] if row[2] is not None else '',           # status
                         'booking_id': row[3] if row[3] is not None else '',       # booking_id
-                        'product': row[4] if row[4] is not None else 'Mailshot'   # product
+                        'product': row[4] if row[4] is not None else 'Mailshot',  # product
+                        'client_name': row[6] if row[6] is not None else 'No Client',  # client_name
+                        'contract_id': row[7] if row[7] is not None else 'N/A'    # contract_id
                     })
                     
                 except Exception as e:
@@ -484,13 +509,15 @@ def api_inventory():
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         status_filter = request.args.get('status')  # New parameter for status filtering
+        client_filter = request.args.get('client')  # New parameter for client filtering
         
         # Always use the filtered inventory slots function for detailed results
         inventory_slots = get_filtered_inventory_slots(
             product_filter=product_filter,
             brand_filter=brand_filter,
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            client_filter=client_filter
         )
         
         # Apply status filter if specified
@@ -528,12 +555,11 @@ def api_campaign_ledger():
         query = """
         SELECT 
             "ID" as id,
-            "Campaign Name" as campaign_name,
             "Client Name" as client,
             "Product Name - As per Listing Hub" as product,
             "Brand" as brand,
             "Scheduled Live Date" as start_date,
-            "End Date" as end_date,
+            "Schedule End Date" as end_date,
             "Status" as status
         FROM campaign_metadata.campaign_ledger
         ORDER BY "Scheduled Live Date" DESC
@@ -546,16 +572,15 @@ def api_campaign_ledger():
         # Convert to list of dictionaries
         result = []
         for row in campaign_data:
-            # pg8000 returns tuples: (id, campaign_name, client, product, brand, start_date, end_date, status)
+            # pg8000 returns tuples: (id, client, product, brand, start_date, end_date, status)
             result.append({
                 'id': row[0],                                    # id
-                'campaign_name': row[1],                         # campaign_name
-                'client': row[2],                                # client
-                'product': row[3],                               # product
-                'brand': row[4],                                 # brand
-                'start_date': convert_excel_date_to_readable(row[5]),   # start_date
-                'end_date': convert_excel_date_to_readable(row[6]),     # end_date
-                'status': row[7]                                 # status
+                'client': row[1],                                # client
+                'product': row[2],                               # product
+                'brand': row[3],                                 # brand
+                'start_date': convert_excel_date_to_readable(row[4]),   # start_date
+                'end_date': convert_excel_date_to_readable(row[5]),     # end_date
+                'status': row[6]                                 # status
             })
         
         cursor.close()
@@ -773,6 +798,234 @@ def api_weekly_comparison():
         return jsonify(comparison_data)
     except Exception as e:
         print(f"Weekly Comparison API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/brand-product-breakdown')
+def api_brand_product_breakdown():
+    """API endpoint for brand-product breakdown data"""
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Define brand tables and their mappings
+        brand_tables = [
+            ('aa_inventory', 'Accountancy Age'),
+            ('bob_inventory', 'Bobsguide'),
+            ('cfo_inventory', 'The CFO'),
+            ('gt_inventory', 'Global Treasurer'),
+            ('hrd_inventory', 'HRD Connect'),
+            ('cz_inventory', 'ClickZ')
+        ]
+        
+        breakdown_data = {}
+        
+        for table_name, brand_name in brand_tables:
+            try:
+                # Query to get product breakdown for this brand
+                query = f"""
+                SELECT 
+                    "Media_Asset" as product,
+                    COUNT(DISTINCT "ID") as total_slots,
+                    COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Booked' THEN "ID" END) as booked_slots,
+                    COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN "ID" END) as available_slots,
+                    COUNT(DISTINCT CASE WHEN "Booked/Not Booked" = 'Hold' THEN "ID" END) as on_hold_slots
+                FROM campaign_metadata.{table_name}
+                WHERE "ID" >= 8000 AND "Media_Asset" IS NOT NULL
+                GROUP BY "Media_Asset"
+                ORDER BY total_slots DESC
+                """
+                
+                cursor.execute(query)
+                product_results = cursor.fetchall()
+                
+                # Process results for this brand
+                brand_products = {}
+                for row in product_results:
+                    product_name = row[0] if row[0] else 'Unknown Product'
+                    total_slots = row[1] if row[1] else 0
+                    booked_slots = row[2] if row[2] else 0
+                    available_slots = row[3] if row[3] else 0
+                    on_hold_slots = row[4] if row[4] else 0
+                    
+                    # Calculate percentage
+                    percentage = (booked_slots / total_slots * 100) if total_slots > 0 else 0
+                    
+                    brand_products[product_name] = {
+                        'total_slots': total_slots,
+                        'booked_slots': booked_slots,
+                        'available_slots': available_slots,
+                        'on_hold_slots': on_hold_slots,
+                        'percentage': round(percentage, 1)
+                    }
+                
+                breakdown_data[brand_name] = brand_products
+                
+            except Exception as e:
+                print(f"Error querying {table_name}: {e}")
+                # Add empty data for this brand if query fails
+                breakdown_data[brand_name] = {}
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(breakdown_data)
+        
+    except Exception as e:
+        print(f"Brand Product Breakdown API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/clients')
+def api_clients():
+    """API endpoint to get unique client names with actual inventory slot counts"""
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Query to get unique clients with their actual inventory slot counts
+        # This counts actual booked inventory slots, not campaign_ledger records
+        query = """
+        WITH client_inventory_counts AS (
+            SELECT 
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Contract ID", 'N/A') as contract_id,
+                cl."Brand" as brand,
+                COUNT(DISTINCT inv."ID") as inventory_slots
+            FROM campaign_metadata.cfo_inventory inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'CFO'
+            WHERE inv."ID" >= 8000
+            AND inv."Booked/Not Booked" = 'Booked'
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
+            AND TRIM(cl."Client Name") != ''
+            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
+            
+            UNION ALL
+            
+            SELECT 
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Contract ID", 'N/A') as contract_id,
+                cl."Brand" as brand,
+                COUNT(DISTINCT inv."ID") as inventory_slots
+            FROM campaign_metadata.aa_inventory inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'AA'
+            WHERE inv."ID" >= 8000
+            AND inv."Booked/Not Booked" = 'Booked'
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
+            AND TRIM(cl."Client Name") != ''
+            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
+            
+            UNION ALL
+            
+            SELECT 
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Contract ID", 'N/A') as contract_id,
+                cl."Brand" as brand,
+                COUNT(DISTINCT inv."ID") as inventory_slots
+            FROM campaign_metadata.bob_inventory inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'BG'
+            WHERE inv."ID" >= 8000
+            AND inv."Booked/Not Booked" = 'Booked'
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
+            AND TRIM(cl."Client Name") != ''
+            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
+            
+            UNION ALL
+            
+            SELECT 
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Contract ID", 'N/A') as contract_id,
+                cl."Brand" as brand,
+                COUNT(DISTINCT inv."ID") as inventory_slots
+            FROM campaign_metadata.gt_inventory inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'GT'
+            WHERE inv."ID" >= 8000
+            AND inv."Booked/Not Booked" = 'Booked'
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
+            AND TRIM(cl."Client Name") != ''
+            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
+            
+            UNION ALL
+            
+            SELECT 
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Contract ID", 'N/A') as contract_id,
+                cl."Brand" as brand,
+                COUNT(DISTINCT inv."ID") as inventory_slots
+            FROM campaign_metadata.hrd_inventory inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'HRD'
+            WHERE inv."ID" >= 8000
+            AND inv."Booked/Not Booked" = 'Booked'
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
+            AND TRIM(cl."Client Name") != ''
+            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
+            
+            UNION ALL
+            
+            SELECT 
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Contract ID", 'N/A') as contract_id,
+                cl."Brand" as brand,
+                COUNT(DISTINCT inv."ID") as inventory_slots
+            FROM campaign_metadata.cz_inventory inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'CZ'
+            WHERE inv."ID" >= 8000
+            AND inv."Booked/Not Booked" = 'Booked'
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
+            AND TRIM(cl."Client Name") != ''
+            GROUP BY cl."Client Name", cl."Contract ID", cl."Brand"
+        )
+        SELECT 
+            client_name,
+            contract_id,
+            brand,
+            SUM(inventory_slots) as total_inventory_slots
+        FROM client_inventory_counts
+        GROUP BY client_name, contract_id, brand
+        ORDER BY client_name, brand, contract_id
+        """
+        
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        # Process results to create client list with accurate counts
+        clients = []
+        for row in results:
+            client_name = row[0] if row[0] else 'Unknown Client'
+            contract_id = row[1] if row[1] else 'N/A'
+            brand = row[2] if row[2] else 'Unknown Brand'
+            inventory_slots = row[3] if row[3] else 0
+            
+            clients.append({
+                'client_name': client_name,
+                'contract_id': contract_id,
+                'brand': brand,
+                'booking_count': inventory_slots  # This now represents actual inventory slots
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(clients)
+        
+    except Exception as e:
+        print(f"Clients API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 # HTML Template for the dashboard
@@ -1055,4 +1308,5 @@ HTML_TEMPLATE = """
 """
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    port = int(os.getenv('PORT', 5002))
+    app.run(debug=True, port=port)

@@ -7,25 +7,48 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white">
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-6 py-8 max-w-7xl">
         <!-- Header -->
-        <header class="text-center mb-8">
+        <header class="text-center mb-10">
             <h1 class="text-4xl font-bold text-blue-400 mb-2">📊 Campaign Inventory Dashboard</h1>
             <p class="text-gray-400">Real-time inventory tracking across all brands</p>
             <p class="text-sm text-gray-500 mt-2">Last updated: <span id="lastUpdated"></span></p>
         </header>
 
         <!-- Overview Section with Weekly View Inline -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10">
             <!-- Brand Overview - Takes 3/4 of the width -->
             <div class="lg:col-span-3 bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <h2 class="text-xl font-bold text-white mb-6">📈 Brand Overview</h2>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-6" id="overviewSection">
-                    <div class="col-span-full text-center">
-                        <div class="animate-pulse">
-                            <div class="h-4 bg-gray-700 rounded w-1/4 mx-auto mb-2"></div>
-                            <div class="text-gray-400 text-sm">Loading brand overview...</div>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">📈 Brand Overview</h2>
+                    <button onclick="openProductBreakdownModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        View All Products
+                    </button>
                         </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6" id="overviewSection">
+                    <!-- Skeleton loading cards -->
+                    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 animate-pulse">
+                        <div class="h-6 bg-gray-700 rounded w-3/4 mx-auto mb-4"></div>
+                        <div class="h-12 bg-gray-700 rounded w-1/2 mx-auto"></div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 animate-pulse">
+                        <div class="h-6 bg-gray-700 rounded w-3/4 mx-auto mb-4"></div>
+                        <div class="h-12 bg-gray-700 rounded w-1/2 mx-auto"></div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 animate-pulse">
+                        <div class="h-6 bg-gray-700 rounded w-3/4 mx-auto mb-4"></div>
+                        <div class="h-12 bg-gray-700 rounded w-1/2 mx-auto"></div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 animate-pulse">
+                        <div class="h-6 bg-gray-700 rounded w-3/4 mx-auto mb-4"></div>
+                        <div class="h-12 bg-gray-700 rounded w-1/2 mx-auto"></div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 animate-pulse">
+                        <div class="h-6 bg-gray-700 rounded w-3/4 mx-auto mb-4"></div>
+                        <div class="h-12 bg-gray-700 rounded w-1/2 mx-auto"></div>
                     </div>
                 </div>
             </div>
@@ -42,7 +65,7 @@
         </div>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                 <div class="flex items-center">
                     <div class="p-3 rounded-full bg-blue-500 bg-opacity-20">
@@ -101,13 +124,36 @@
         </div>
 
         <!-- Filters Section -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-4">🔍 Filters</h2>
-            <div class="flex items-center space-x-4">
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-10">
+            <h2 class="text-xl font-bold text-white mb-6">🔍 Filters</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+                <!-- Client Filter -->
+                <div class="lg:col-span-3">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Client</label>
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="clientFilter"
+                            placeholder="Type to search clients..."
+                            class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autocomplete="off"
+                        >
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <!-- Dropdown for filtered results -->
+                        <div id="clientDropdown" class="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
+                            <!-- Filtered client options will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Product Filter -->
-                <div class="flex-1">
+                <div class="lg:col-span-2">
                     <label class="block text-sm font-medium text-gray-400 mb-2">Product</label>
-                                         <select id="productFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="productFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
                          <option value="">All Products</option>
                          <option value="Hosted_Content">Hosted Content</option>
                          <option value="LVB_Mailshot">LVB Mailshot</option>
@@ -122,38 +168,39 @@
                 </div>
                 
                 <!-- Brand Filter -->
-                <div class="flex-1">
+                <div class="lg:col-span-2">
                     <label class="block text-sm font-medium text-gray-400 mb-2">Brand</label>
-                    <select id="brandFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="brandFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">All Brands</option>
                         <option value="Accountancy Age">Accountancy Age</option>
                         <option value="Bobsguide">Bobsguide</option>
                         <option value="The CFO">The CFO</option>
                         <option value="Global Treasurer">Global Treasurer</option>
                         <option value="HRD Connect">HRD Connect</option>
+                        <option value="ClickZ">ClickZ</option>
                     </select>
                 </div>
                 
                 <!-- Date Range -->
-                <div class="flex-1">
+                <div class="lg:col-span-2">
                     <label class="block text-sm font-medium text-gray-400 mb-2">Start Date</label>
-                    <input type="date" id="startDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="date" id="startDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 
-                <div class="flex-1">
+                <div class="lg:col-span-2">
                     <label class="block text-sm font-medium text-gray-400 mb-2">End Date</label>
-                    <input type="date" id="endDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="date" id="endDate" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 
                 <!-- Action Buttons -->
-                <div class="flex space-x-2">
-                    <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                <div class="lg:col-span-3 flex space-x-3 justify-end">
+                    <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center transition-colors font-medium">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                         Search
                     </button>
-                    <button onclick="resetFilters()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                    <button onclick="resetFilters()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2.5 rounded-lg transition-colors font-medium">
                         Reset
                     </button>
                 </div>
@@ -162,9 +209,9 @@
 
         <!-- Status Filter (Above Results) -->
         <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-4">🎯 Further Filter Results</h2>
-            <div class="flex items-center space-x-4">
-                <div class="flex-1">
+            <h2 class="text-xl font-bold text-white mb-6">🎯 Further Filter Results</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+                <div class="lg:col-span-4">
                     <label class="block text-sm font-medium text-gray-400 mb-2">Status Filter</label>
                     <select id="statusFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">All Statuses</option>
@@ -174,14 +221,14 @@
                     </select>
                 </div>
                 
-                <div class="flex space-x-2">
-                    <button onclick="applyStatusFilter()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
+                <div class="lg:col-span-8 flex space-x-2 justify-end">
+                    <button onclick="applyStatusFilter()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
                         </svg>
                         Filter by Status
                     </button>
-                    <button onclick="clearStatusFilter()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                    <button onclick="clearStatusFilter()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
                         Clear Status Filter
                     </button>
                 </div>
@@ -215,10 +262,33 @@
     </div>
 
     <script>
-        const API_BASE = 'https://campaign-inventory-api.onrender.com/api';
+        const API_BASE = 'http://localhost:5003/api';
         let allData = [];
         let filteredData = [];
         let overviewData = [];
+        let allClientsData = []; // Global storage for client data
+        
+        // Cache for better performance
+        const cache = {
+            overview: { data: null, timestamp: 0, ttl: 30000 }, // 30 seconds
+            clients: { data: null, timestamp: 0, ttl: 60000 }, // 1 minute
+            weekly: { data: null, timestamp: 0, ttl: 30000 } // 30 seconds
+        };
+        
+        // Cache helper functions
+        function isCacheValid(cacheKey) {
+            const now = Date.now();
+            return cache[cacheKey].data && (now - cache[cacheKey].timestamp) < cache[cacheKey].ttl;
+        }
+        
+        function setCache(cacheKey, data) {
+            cache[cacheKey].data = data;
+            cache[cacheKey].timestamp = Date.now();
+        }
+        
+        function getCache(cacheKey) {
+            return cache[cacheKey].data;
+        }
         
         // Update last updated timestamp
         function updateLastUpdated() {
@@ -226,16 +296,27 @@
             document.getElementById('lastUpdated').textContent = now.toLocaleString();
         }
         
-        // Fetch overview data (static, unfiltered)
-        async function fetchOverviewData() {
+        // Fetch overview data with retry mechanism and caching
+        async function fetchOverviewData(retryCount = 0) {
+            // Check cache first
+            if (isCacheValid('overview')) {
+                console.log('Using cached overview data');
+                overviewData = getCache('overview');
+                updateOverviewSection(overviewData);
+                return;
+            }
+            
+            const maxRetries = 3;
+            const retryDelay = 1000 * Math.pow(2, retryCount); // Exponential backoff
+            
             try {
-                console.log('Fetching overview data...');
+                console.log(`Fetching overview data (attempt ${retryCount + 1}/${maxRetries + 1})`);
                 
                 // Add timeout to prevent hanging
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
                 
-                const response = await fetch(`${API_BASE}/inventory`, {
+                const response = await fetch(`${API_BASE}/brand-overview`, {
                     signal: controller.signal
                 });
                 
@@ -246,17 +327,48 @@
                 }
                 
                 const data = await response.json();
+                
+                // Validate response data
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Invalid response data format');
+                }
+                
+                // Cache the data
+                setCache('overview', data);
                 overviewData = data;
                 updateOverviewSection(data);
+                console.log('Overview data loaded and cached successfully');
+                
             } catch (error) {
-                console.error('Error fetching overview data:', error);
-                // Show error state in overview
+                console.error(`Error fetching overview data (attempt ${retryCount + 1}):`, error);
+                
+                if (retryCount < maxRetries && error.name !== 'AbortError') {
+                    console.log(`Retrying in ${retryDelay}ms...`);
+                    setTimeout(() => fetchOverviewData(retryCount + 1), retryDelay);
+                } else {
+                    // Show enhanced error state in overview
                 document.getElementById('overviewSection').innerHTML = `
                     <div class="col-span-full text-center text-red-400">
-                        <div class="text-sm">⚠️ Error loading overview data</div>
-                        <div class="text-xs text-gray-500 mt-1">Please check your connection</div>
+                            <div class="mb-4">
+                                <div class="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-lg font-semibold mb-2">Unable to load brand data</div>
+                                <div class="text-sm text-gray-400 mb-4">This might be due to a network issue or server problem</div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                                <button onclick="fetchOverviewData()" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors font-medium">
+                                    🔄 Try Again
+                                </button>
+                                <button onclick="location.reload()" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors font-medium">
+                                    🔃 Refresh Page
+                                </button>
+                            </div>
                     </div>
                 `;
+                }
             }
         }
         
@@ -266,13 +378,14 @@
             
             // Calculate brand-wise statistics
             const brandStats = {};
-            const brands = ['AA', 'BG', 'CFO', 'GT', 'HRD'];
+            const brands = ['AA', 'BG', 'CFO', 'GT', 'HRD', 'CZ'];
             const brandNames = {
                 'AA': 'Accountancy Age',
                 'BG': 'Bobsguide', 
                 'CFO': 'The CFO',
                 'GT': 'Global Treasurer',
-                'HRD': 'HRD Connect'
+                'HRD': 'HRD Connect',
+                'CZ': 'ClickZ'
             };
             
             brands.forEach(brand => {
@@ -289,7 +402,7 @@
                 };
             });
             
-            // Create overview cards
+            // Create clean, professional overview cards
             overviewSection.innerHTML = brands.map(brand => {
                 const stats = brandStats[brand];
                 const colorClass = stats.percentage >= 70 ? 'text-green-400' : 
@@ -298,13 +411,30 @@
                                    stats.percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500';
                 
                 return `
-                    <div class="text-center">
-                        <div class="text-lg font-bold text-white mb-2">${stats.name}</div>
-                        <div class="text-3xl font-bold ${colorClass} mb-2">${stats.percentage}%</div>
-                        <div class="text-sm text-gray-400 mb-3">${stats.booked}/${stats.total} Booked</div>
-                        <div class="w-full bg-gray-700 rounded-full h-2">
-                            <div class="${bgColorClass} h-2 rounded-full" style="width: ${stats.percentage}%"></div>
+                    <div class="bg-gray-800 rounded-lg p-4 sm:p-6 cursor-pointer hover:bg-gray-700 transition-all duration-300 border border-gray-600 hover:border-gray-500 h-full flex flex-col items-center justify-center group relative overflow-hidden" onclick="openProductBreakdownModal('${stats.name}')">
+                        <!-- Subtle background gradient -->
+                        <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
+                        
+                        <!-- Content -->
+                        <div class="relative z-10 text-center">
+                            <!-- Brand Name -->
+                            <h3 class="text-sm sm:text-lg font-semibold text-white mb-3 sm:mb-4 group-hover:text-blue-300 transition-colors duration-300">${stats.name}</h3>
+                            
+                            <!-- Percentage with enhanced styling -->
+                            <div class="relative">
+                                <div class="text-2xl sm:text-4xl font-bold ${colorClass} group-hover:scale-110 transition-transform duration-300">${stats.percentage}%</div>
+                                <!-- Subtle glow effect -->
+                                <div class="absolute inset-0 ${colorClass} opacity-20 blur-sm group-hover:opacity-30 transition-opacity duration-300"></div>
                         </div>
+                            
+                            <!-- Click hint - hidden on mobile -->
+                            <div class="mt-2 sm:mt-3 text-xs text-gray-500 group-hover:text-gray-400 transition-colors duration-300 hidden sm:block">
+                                Click for details
+                            </div>
+                        </div>
+                        
+                        <!-- Hover effect overlay -->
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-500 rounded-lg"></div>
                     </div>
                 `;
             }).join('');
@@ -321,6 +451,7 @@
                 
                 // Build query parameters
                 const params = new URLSearchParams();
+                if (filters.client) params.append('client', filters.client);
                 if (filters.product) params.append('product', filters.product);
                 if (filters.brand) params.append('brand', filters.brand);
                 if (filters.startDate) params.append('start_date', filters.startDate);
@@ -421,6 +552,7 @@
         
         // Apply filters
         function applyFilters() {
+            const client = document.getElementById('clientFilter').value.trim();
             const product = document.getElementById('productFilter').value;
             const brand = document.getElementById('brandFilter').value;
             const startDate = document.getElementById('startDate').value;
@@ -444,10 +576,12 @@
                 'Bobsguide': 'BG',
                 'The CFO': 'CFO',
                 'Global Treasurer': 'GT',
-                'HRD Connect': 'HRD'
+                'HRD Connect': 'HRD',
+                'ClickZ': 'CZ'
             };
             
             const filters = {};
+            if (client) filters.client = client;
             if (product) filters.product = product;
             if (brand) filters.brand = brandMapping[brand];
             if (startDate) filters.startDate = startDate;
@@ -510,49 +644,85 @@
         
         // Reset filters
         function resetFilters() {
+            document.getElementById('clientFilter').value = '';
             document.getElementById('productFilter').value = '';
             document.getElementById('brandFilter').value = '';
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
             document.getElementById('statusFilter').value = '';
             
+            // Hide client dropdown
+            hideClientDropdown();
+            
             fetchData(); // Fetch all data without filters
         }
         
         // Weekly View Functions
-        function getNextWeek() {
+        let currentWeekOffset = 0; // 0 = next week, 1 = week after next
+        
+        function getWeekRange(offset = 0) {
             const today = new Date();
             const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
             const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek) % 7; // Handle Sunday case
             
-            const nextMonday = new Date(today);
-            nextMonday.setDate(today.getDate() + daysUntilMonday);
+            const targetMonday = new Date(today);
+            targetMonday.setDate(today.getDate() + daysUntilMonday + (offset * 7));
             
-            const nextSunday = new Date(nextMonday);
-            nextSunday.setDate(nextMonday.getDate() + 6);
+            const targetSunday = new Date(targetMonday);
+            targetSunday.setDate(targetMonday.getDate() + 6);
             
             return {
-                startDate: nextMonday.toISOString().split('T')[0],
-                endDate: nextSunday.toISOString().split('T')[0],
-                weekLabel: `Week of ${nextMonday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                startDate: targetMonday.toISOString().split('T')[0],
+                endDate: targetSunday.toISOString().split('T')[0],
+                weekLabel: `Week of ${targetMonday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
             };
         }
+        
+        function getNextWeek() {
+            return getWeekRange(0); // Next week
+        }
+        
+        function getWeekAfter() {
+            return getWeekRange(1); // Week after next
+        }
+        
+        // Switch between weeks
+        function switchWeek(weekOffset) {
+            currentWeekOffset = weekOffset;
+            fetchWeeklyComparison(weekOffset);
+        }
 
-        async function fetchWeeklyComparison() {
+        async function fetchWeeklyComparison(weekOffset = 0) {
             try {
-                const weekRange = getNextWeek();
+                const weekRange = getWeekRange(weekOffset);
                 
                 // Add timeout for weekly view
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
                 
-                const response = await fetch(`http://localhost:5001/api/weekly-comparison?start_date=${weekRange.startDate}&end_date=${weekRange.endDate}`, {
+                const response = await fetch(`${API_BASE}/weekly-comparison?start_date=${weekRange.startDate}&end_date=${weekRange.endDate}`, {
                     signal: controller.signal
                 });
                 
                 clearTimeout(timeoutId);
                 
                 if (!response.ok) {
+                    if (response.status === 404) {
+                        // Weekly comparison endpoint not available in deployed version
+                        console.log('Weekly comparison endpoint not available, using fallback data');
+                        const data = {
+                            week_range: {
+                                start_date: weekRange.startDate,
+                                end_date: weekRange.endDate
+                            },
+                            summary: {
+                                total_booked: 0,
+                                total_form_submissions: 0
+                            },
+                            by_brand: {}
+                        };
+                        return data;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
@@ -561,7 +731,7 @@
             } catch (error) {
                 console.error('Error fetching weekly comparison:', error);
                 // Show mock data for testing when backend is not available
-                const weekRange = getNextWeek();
+                const weekRange = getWeekRange(weekOffset);
                 const mockData = {
                     week_range: {
                         start_date: weekRange.startDate,
@@ -604,50 +774,57 @@
             const byBrand = data.by_brand;
             
             let brandHtml = '';
-            Object.entries(byBrand).forEach(([brand, brandData]) => {
-                const statusColor = getStatusColor(brandData.booked, brandData.form_submissions);
-                const statusIcon = getStatusIcon(brandData.booked, brandData.form_submissions);
-                
+            Object.entries(byBrand).forEach(([brandCode, brandData]) => {
                 brandHtml += `
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-gray-300">${brand}</span>
+                    <div class="bg-gray-700 rounded-lg p-3">
+                        <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <span class="text-green-400">${brandData.booked}</span>
+                                <span class="text-sm font-medium text-gray-300">${brandCode}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-bold text-green-400">${brandData.booked}</span>
                             <span class="text-gray-500">/</span>
-                            <span class="text-blue-400">${brandData.form_submissions}</span>
-                            <span class="${statusColor}">${statusIcon}</span>
+                                <span class="text-sm font-bold text-blue-400">${brandData.form_submissions}</span>
+                            </div>
                         </div>
                     </div>
                 `;
             });
 
             weeklyViewElement.innerHTML = `
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-semibold text-blue-400">📅 Weekly Overview</h3>
-                    <span class="text-xs text-gray-400">${weekRange.weekLabel}</span>
+                <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                    <!-- Header with Navigation -->
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white">📅 Weekly Overview</h3>
+                        <div class="flex items-center gap-2">
+                            <button onclick="switchWeek(0)" class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors ${currentWeekOffset === 0 ? 'bg-blue-700' : ''}">
+                                Next Week
+                            </button>
+                            <button onclick="switchWeek(1)" class="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors ${currentWeekOffset === 1 ? 'bg-gray-700' : ''}">
+                                Week After
+                            </button>
                 </div>
-                <div class="space-y-3">
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div class="bg-gray-700 rounded p-2">
-                            <div class="text-gray-300">Booked</div>
-                            <div class="text-lg font-bold text-green-400">${summary.total_booked}</div>
                         </div>
-                        <div class="bg-gray-700 rounded p-2">
-                            <div class="text-gray-300">Form Filled</div>
-                            <div class="text-lg font-bold text-blue-400">${summary.total_form_submissions}</div>
+                    <div class="text-xs text-gray-400 mb-4 text-center">${weekRange.weekLabel}</div>
+                    
+                    <!-- Summary cards -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-gray-700 rounded-lg p-3 text-center">
+                            <div class="text-xl font-bold text-green-400">${summary.total_booked}</div>
+                            <div class="text-xs text-gray-400">Booked</div>
                         </div>
+                        <div class="bg-gray-700 rounded-lg p-3 text-center">
+                            <div class="text-xl font-bold text-blue-400">${summary.total_form_submissions}</div>
+                            <div class="text-xs text-gray-400">Form Filled</div>
                     </div>
-                    <div class="space-y-1">
-                        <div class="text-xs text-gray-400 font-medium">By Brand:</div>
+                    </div>
+                    
+                    <!-- Brand breakdown -->
+                    <div class="space-y-2">
+                        <div class="text-sm font-medium text-gray-300 mb-2">Brand Performance</div>
                         ${brandHtml}
                     </div>
-                    <div class="text-xs text-gray-500 pt-2 border-t border-gray-700">
-                        <div class="flex items-center gap-4">
-                            <span>✅ Synced</span>
-                            <span>⚠️ Partial</span>
-                            <span>❌ Missing</span>
-                        </div>
-                    </div>
+                    
                 </div>
             `;
         }
@@ -667,18 +844,107 @@
             `;
         }
 
-        function getStatusColor(booked, formSubmissions) {
-            if (formSubmissions === 0) return 'text-gray-400';
-            if (booked === formSubmissions) return 'text-green-400';
-            if (booked > formSubmissions) return 'text-yellow-400';
-            return 'text-red-400';
+
+        // Load client data for autocomplete
+        async function loadClients() {
+            try {
+                const response = await fetch(`${API_BASE}/clients`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const clients = await response.json();
+                
+                // Group clients by name to avoid duplicates
+                const uniqueClients = new Map();
+                clients.forEach(client => {
+                    if (!uniqueClients.has(client.client_name)) {
+                        uniqueClients.set(client.client_name, {
+                            name: client.client_name,
+                            totalBookings: 0,
+                            brands: new Set()
+                        });
+                    }
+                    const clientData = uniqueClients.get(client.client_name);
+                    clientData.totalBookings += parseInt(client.booking_count);
+                    clientData.brands.add(client.brand);
+                });
+                
+                // Store globally for autocomplete
+                allClientsData = Array.from(uniqueClients.values())
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                
+                console.log(`Loaded ${allClientsData.length} unique clients for autocomplete`);
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                allClientsData = [];
+            }
         }
 
-        function getStatusIcon(booked, formSubmissions) {
-            if (formSubmissions === 0) return '⚪';
-            if (booked === formSubmissions) return '✅';
-            if (booked > formSubmissions) return '⚠️';
-            return '❌';
+        // Autocomplete functionality
+        function filterClients(query) {
+            if (!query || query.length < 1) {
+                hideClientDropdown();
+                return;
+            }
+            
+            const filtered = allClientsData.filter(client => 
+                client.name.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            showClientDropdown(filtered);
+        }
+
+        function showClientDropdown(clients) {
+            const dropdown = document.getElementById('clientDropdown');
+            if (clients.length === 0) {
+                dropdown.innerHTML = '<div class="px-3 py-2 text-gray-400 text-sm">No clients found</div>';
+            } else {
+                dropdown.innerHTML = clients.map(client => `
+                    <div class="px-3 py-2 hover:bg-gray-600 cursor-pointer text-sm border-b border-gray-600 last:border-b-0" 
+                         onclick="selectClient('${client.name}')">
+                        <div class="text-white">${client.name}</div>
+                        <div class="text-gray-400 text-xs">${client.totalBookings} bookings</div>
+                    </div>
+                `).join('');
+            }
+            dropdown.classList.remove('hidden');
+        }
+
+        function hideClientDropdown() {
+            const dropdown = document.getElementById('clientDropdown');
+            dropdown.classList.add('hidden');
+        }
+
+        function selectClient(clientName) {
+            const input = document.getElementById('clientFilter');
+            input.value = clientName;
+            hideClientDropdown();
+            applyFilters(); // Apply filters immediately when client is selected
+        }
+
+        function setupClientFilter() {
+            const input = document.getElementById('clientFilter');
+            const dropdown = document.getElementById('clientDropdown');
+            
+            // Input event for filtering
+            input.addEventListener('input', function() {
+                filterClients(this.value);
+            });
+            
+            // Click outside to close dropdown
+            document.addEventListener('click', function(event) {
+                if (!input.contains(event.target) && !dropdown.contains(event.target)) {
+                    hideClientDropdown();
+                }
+            });
+            
+            // Focus events
+            input.addEventListener('focus', function() {
+                if (this.value.length > 0) {
+                    filterClients(this.value);
+                }
+            });
         }
 
         // Load data on page load
@@ -687,7 +953,7 @@
             
             // Show loading progress
             let loadingSteps = 0;
-            const totalSteps = 3;
+            const totalSteps = 4;
             
             function updateLoadingProgress(step) {
                 loadingSteps++;
@@ -701,12 +967,356 @@
             // Load main dashboard data first
             fetchOverviewData().then(() => updateLoadingProgress(1));
             fetchData().then(() => updateLoadingProgress(2));
+            loadClients().then(() => {
+                setupClientFilter(); // Set up autocomplete after clients are loaded
+                updateLoadingProgress(3);
+            });
             
             // Load weekly view independently (non-blocking)
             setTimeout(() => {
-                fetchWeeklyComparison().then(() => updateLoadingProgress(3));
+                fetchWeeklyComparison(currentWeekOffset).then(() => updateLoadingProgress(4));
             }, 1000); // 1 second delay to not block main dashboard
         });
+
+        // Product Breakdown Modal Functions
+        const PRODUCT_BREAKDOWN_CONFIG = {
+            MIN_BOOKING_PERCENTAGE: 7, // Set the minimum booking percentage for products to be displayed
+            DISPLAY: {
+                SHOW_THRESHOLD_NOTE: true, // Whether to show the note about the threshold in the modal
+            },
+        };
+
+        let breakdownData = {};
+        let selectedBrand = null;
+        let refreshInterval = null;
+
+        function openProductBreakdownModal(brandName = null) {
+            selectedBrand = brandName;
+            const modal = document.getElementById('productBreakdownModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalSubtitle = document.getElementById('modalSubtitle');
+            const brandSelector = document.getElementById('brandSelector');
+            
+            // Update modal title and show/hide brand selector
+            if (brandName) {
+                modalTitle.textContent = `${brandName} - Product Breakdown`;
+                modalSubtitle.textContent = `Products with booking rates ≥ ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%`;
+                brandSelector.classList.add('hidden');
+            } else {
+                modalTitle.textContent = 'Product Breakdown - All Brands';
+                modalSubtitle.textContent = `Products with booking rates ≥ ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%`;
+                brandSelector.classList.remove('hidden');
+            }
+            
+            modal.classList.remove('hidden');
+            fetchBreakdownData();
+            
+            // Set up automatic refresh every 30 seconds
+            refreshInterval = setInterval(() => {
+                fetchBreakdownData();
+            }, 30000);
+        }
+
+        function closeProductBreakdownModal() {
+            const modal = document.getElementById('productBreakdownModal');
+            modal.classList.add('hidden');
+            
+            // Clear refresh interval
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+
+        async function fetchBreakdownData() {
+            try {
+                showModalLoading();
+                
+                const response = await fetch(`${API_BASE}/brand-product-breakdown`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                breakdownData = await response.json();
+                updateModalContent();
+                updateLastUpdatedModal();
+                
+            } catch (error) {
+                console.error('Error fetching breakdown data:', error);
+                showModalError();
+            }
+        }
+
+        function showModalLoading() {
+            document.getElementById('modalLoading').classList.remove('hidden');
+            document.getElementById('modalContent').classList.add('hidden');
+            document.getElementById('modalError').classList.add('hidden');
+        }
+
+        function showModalError() {
+            document.getElementById('modalLoading').classList.add('hidden');
+            document.getElementById('modalContent').classList.add('hidden');
+            document.getElementById('modalError').classList.remove('hidden');
+        }
+
+        function updateModalContent() {
+            document.getElementById('modalLoading').classList.add('hidden');
+            document.getElementById('modalContent').classList.remove('hidden');
+            document.getElementById('modalError').classList.add('hidden');
+            
+            const productsList = document.getElementById('productsList');
+            const noProductsMessage = document.getElementById('noProductsMessage');
+            
+            if (selectedBrand) {
+                // Show products for specific brand
+                const brandProducts = breakdownData[selectedBrand] || {};
+                displayProducts(brandProducts, selectedBrand);
+            } else {
+                // Show all brands or selected brand from dropdown
+                const brandSelect = document.getElementById('brandSelect');
+                const selectedBrandFromDropdown = brandSelect.value;
+                
+                if (selectedBrandFromDropdown) {
+                    const brandProducts = breakdownData[selectedBrandFromDropdown] || {};
+                    displayProducts(brandProducts, selectedBrandFromDropdown);
+                } else {
+                    displayAllBrands();
+                }
+            }
+        }
+
+        function displayProducts(products, brandName) {
+            const productsList = document.getElementById('productsList');
+            const noProductsMessage = document.getElementById('noProductsMessage');
+            
+            // Filter products based on threshold
+            const filteredProducts = Object.entries(products)
+                .filter(([, data]) => data.percentage >= PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE)
+                .sort(([,a], [,b]) => b.total_slots - a.total_slots);
+            
+            if (filteredProducts.length === 0) {
+                productsList.classList.add('hidden');
+                noProductsMessage.classList.remove('hidden');
+                noProductsMessage.innerHTML = `
+                    <div class="text-gray-400 text-lg mb-2">No products meet the ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% threshold</div>
+                    <div class="text-gray-500 text-sm">All products in ${brandName} have booking rates below ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%</div>
+                `;
+                return;
+            }
+            
+            noProductsMessage.classList.add('hidden');
+            productsList.classList.remove('hidden');
+            
+            productsList.innerHTML = `
+                <div class="mb-4">
+                    <h4 class="text-lg font-semibold text-white mb-2">${brandName}</h4>
+                    <p class="text-sm text-gray-400 italic">Only products with booking rates greater than or equal to ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% are displayed to highlight high-performing inventory.</p>
+                </div>
+                <div class="grid gap-4">
+                    ${filteredProducts.map(([productName, data]) => `
+                        <div class="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                            <div class="flex justify-between items-start mb-3">
+                                <h5 class="text-lg font-semibold text-white">${productName}</h5>
+                                <span class="text-2xl font-bold ${getPercentageColor(data.percentage)}">${data.percentage}%</span>
+                            </div>
+                            <div class="grid grid-cols-4 gap-4 text-sm">
+                                <div class="text-center">
+                                    <div class="text-gray-400">Total Slots</div>
+                                    <div class="text-white font-semibold">${data.total_slots}</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-gray-400">Booked</div>
+                                    <div class="text-green-400 font-semibold">${data.booked_slots}</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-gray-400">Available</div>
+                                    <div class="text-blue-400 font-semibold">${data.available_slots}</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-gray-400">On Hold</div>
+                                    <div class="text-yellow-400 font-semibold">${data.on_hold_slots}</div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <div class="w-full bg-gray-600 rounded-full h-2">
+                                    <div class="${getPercentageBgColor(data.percentage)} h-2 rounded-full" style="width: ${data.percentage}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function displayAllBrands() {
+            const productsList = document.getElementById('productsList');
+            const noProductsMessage = document.getElementById('noProductsMessage');
+            
+            noProductsMessage.classList.add('hidden');
+            productsList.classList.remove('hidden');
+            
+            let hasAnyProducts = false;
+            let allBrandsHtml = '';
+            
+            Object.entries(breakdownData).forEach(([brandName, products]) => {
+                const filteredProducts = Object.entries(products)
+                    .filter(([, data]) => data.percentage >= PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE)
+                    .sort(([,a], [,b]) => b.total_slots - a.total_slots);
+                
+                if (filteredProducts.length > 0) {
+                    hasAnyProducts = true;
+                    allBrandsHtml += `
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-white mb-3 border-b border-gray-600 pb-2">${brandName}</h4>
+                            <div class="grid gap-3">
+                                ${filteredProducts.map(([productName, data]) => `
+                                    <div class="bg-gray-700 rounded-lg p-3 border border-gray-600">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-white font-medium">${productName}</span>
+                                            <div class="flex items-center gap-4 text-sm">
+                                                <span class="text-gray-400">${data.booked_slots}/${data.total_slots}</span>
+                                                <span class="text-lg font-bold ${getPercentageColor(data.percentage)}">${data.percentage}%</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <div class="w-full bg-gray-600 rounded-full h-1.5">
+                                                <div class="${getPercentageBgColor(data.percentage)} h-1.5 rounded-full" style="width: ${data.percentage}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            if (!hasAnyProducts) {
+                noProductsMessage.classList.remove('hidden');
+                productsList.classList.add('hidden');
+                noProductsMessage.innerHTML = `
+                    <div class="text-gray-400 text-lg mb-2">No products meet the ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% threshold</div>
+                    <div class="text-gray-500 text-sm">All products across all brands have booking rates below ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%</div>
+                `;
+            } else {
+                productsList.innerHTML = `
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-400 italic">Only products with booking rates greater than or equal to ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% are displayed to highlight high-performing inventory.</p>
+                    </div>
+                    ${allBrandsHtml}
+                `;
+            }
+        }
+
+        function getPercentageColor(percentage) {
+            if (percentage >= 70) return 'text-green-400';
+            if (percentage >= 40) return 'text-yellow-400';
+            return 'text-red-400';
+        }
+
+        function getPercentageBgColor(percentage) {
+            if (percentage >= 70) return 'bg-green-500';
+            if (percentage >= 40) return 'bg-yellow-500';
+            return 'bg-red-500';
+        }
+
+        function updateLastUpdatedModal() {
+            const now = new Date();
+            document.getElementById('lastUpdatedModal').textContent = `Last updated: ${now.toLocaleString()}`;
+        }
+
+        function refreshBreakdownData() {
+            fetchBreakdownData();
+        }
+
+        // Handle brand selector change
+        document.addEventListener('DOMContentLoaded', function() {
+            const brandSelect = document.getElementById('brandSelect');
+            if (brandSelect) {
+                brandSelect.addEventListener('change', function() {
+                    updateModalContent();
+                });
+            }
+        });
     </script>
+
+    <!-- Product Breakdown Modal -->
+    <div id="productBreakdownModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-700">
+                <div>
+                    <h3 class="text-xl font-bold text-white" id="modalTitle">Product Breakdown</h3>
+                    <p class="text-sm text-gray-400 mt-1" id="modalSubtitle">Products with booking rates ≥ 7%</p>
+                </div>
+                <button onclick="closeProductBreakdownModal()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <!-- Loading State -->
+                <div id="modalLoading" class="text-center py-8">
+                    <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p class="text-gray-400">Loading product breakdown...</p>
+                </div>
+
+                <!-- Content -->
+                <div id="modalContent" class="hidden">
+                    <!-- Brand Selector (if showing all brands) -->
+                    <div id="brandSelector" class="mb-6 hidden">
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Select Brand:</label>
+                        <select id="brandSelect" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Brands</option>
+                            <option value="Accountancy Age">Accountancy Age</option>
+                            <option value="Bobsguide">Bobsguide</option>
+                            <option value="The CFO">The CFO</option>
+                            <option value="Global Treasurer">Global Treasurer</option>
+                            <option value="HRD Connect">HRD Connect</option>
+                            <option value="ClickZ">ClickZ</option>
+                        </select>
+                    </div>
+
+                    <!-- Products List -->
+                    <div id="productsList">
+                        <!-- Products will be populated here -->
+                    </div>
+
+                    <!-- No Products Message -->
+                    <div id="noProductsMessage" class="text-center py-8 hidden">
+                        <div class="text-gray-400 text-lg mb-2">No products meet the 7% threshold</div>
+                        <div class="text-gray-500 text-sm">All products in this brand have booking rates below 7%</div>
+                    </div>
+                </div>
+
+                <!-- Error State -->
+                <div id="modalError" class="text-center py-8 hidden">
+                    <div class="text-red-400 text-lg mb-2">Error loading data</div>
+                    <div class="text-gray-500 text-sm">Please try again later</div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex justify-between items-center p-6 border-t border-gray-700 bg-gray-900/50">
+                <div class="text-sm text-gray-400">
+                    <span id="lastUpdatedModal">Last updated: --</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="refreshBreakdownData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                    <button onclick="closeProductBreakdownModal()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
