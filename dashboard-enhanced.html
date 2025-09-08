@@ -436,19 +436,47 @@
                 'CZ': 'ClickZ'
             };
             
-            brands.forEach(brand => {
-                const brandData = data.filter(item => item.brand === brand);
-                const total = brandData.length;
-                const booked = brandData.filter(item => item.status === 'Booked').length;
-                const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
-                
-                brandStats[brand] = {
-                    name: brandNames[brand],
-                    total,
-                    booked,
-                    percentage
-                };
-            });
+            // Handle different data formats
+            if (Array.isArray(data)) {
+                // If data is an array (from fallback), process as before
+                brands.forEach(brand => {
+                    const brandData = data.filter(item => item.brand === brand);
+                    const total = brandData.length;
+                    const booked = brandData.filter(item => item.status === 'Booked').length;
+                    const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
+                    
+                    brandStats[brand] = {
+                        name: brandNames[brand],
+                        total,
+                        booked,
+                        percentage
+                    };
+                });
+            } else if (typeof data === 'object' && data !== null) {
+                // If data is an object (from brand-overview API), process directly
+                Object.keys(data).forEach(brandKey => {
+                    const brandData = data[brandKey];
+                    const total = brandData.total_slots || 0;
+                    const booked = brandData.booked || 0;
+                    const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
+                    
+                    // Map brand key to our internal brand codes
+                    let brandCode = 'AA'; // default
+                    if (brandKey === 'Accountancy Age') brandCode = 'AA';
+                    else if (brandKey === 'Bobsguide') brandCode = 'BG';
+                    else if (brandKey === 'The CFO') brandCode = 'CFO';
+                    else if (brandKey === 'Global Treasurer') brandCode = 'GT';
+                    else if (brandKey === 'HRD Connect') brandCode = 'HRD';
+                    else if (brandKey === 'ClickZ') brandCode = 'CZ';
+                    
+                    brandStats[brandCode] = {
+                        name: brandNames[brandCode],
+                        total,
+                        booked,
+                        percentage
+                    };
+                });
+            }
             
             // Create clean, professional overview cards
             overviewSection.innerHTML = brands.map(brand => {
@@ -915,6 +943,62 @@
                 console.log(`Loaded ${allClientsData.length} unique clients for autocomplete`);
             } catch (error) {
                 console.error('Error loading clients:', error);
+                console.log('Trying fallback: generating client list from inventory data...');
+                
+                // Fallback: generate client list from inventory data
+                try {
+                    const fallbackResponse = await fetch(`${API_BASE}/inventory?limit=1000`);
+                    if (fallbackResponse.ok) {
+                        const inventoryData = await fallbackResponse.json();
+                        
+                        // Extract unique clients from inventory data
+                        const clientSet = new Set();
+                        inventoryData.forEach(item => {
+                            if (item.client_name && item.client_name.trim()) {
+                                clientSet.add(item.client_name.trim());
+                            }
+                        });
+                        
+                        const clients = Array.from(clientSet).map(name => ({
+                            client_name: name,
+                            total_bookings: 1,
+                            brands: ['Multiple']
+                        }));
+                        
+                        console.log(`Generated ${clients.length} clients from inventory data`);
+                        
+                        // Process the generated client data
+                        const uniqueClients = new Map();
+                        clients.forEach(client => {
+                            if (!uniqueClients.has(client.client_name)) {
+                                uniqueClients.set(client.client_name, {
+                                    name: client.client_name,
+                                    totalBookings: 0,
+                                    brands: new Set()
+                                });
+                            }
+                            const clientData = uniqueClients.get(client.client_name);
+                            clientData.totalBookings += client.total_bookings || 1;
+                            if (client.brands) {
+                                client.brands.forEach(brand => clientData.brands.add(brand));
+                            }
+                        });
+                        
+                        // Convert to array and sort
+                        allClientsData = Array.from(uniqueClients.values())
+                            .map(client => ({
+                                ...client,
+                                brands: Array.from(client.brands).join(', ')
+                            }))
+                            .sort((a, b) => a.name.localeCompare(b.name));
+                        
+                        console.log(`Loaded ${allClientsData.length} unique clients from fallback data`);
+                        return;
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                }
+                
                 allClientsData = [];
             }
         }
@@ -1081,6 +1165,52 @@
                 
             } catch (error) {
                 console.error('Error fetching breakdown data:', error);
+                console.log('Trying fallback: generating breakdown data from inventory...');
+                
+                // Fallback: generate breakdown data from inventory
+                try {
+                    const fallbackResponse = await fetch(`${API_BASE}/inventory?limit=1000`);
+                    if (fallbackResponse.ok) {
+                        const inventoryData = await fallbackResponse.json();
+                        
+                        // Generate breakdown data from inventory
+                        const breakdown = {};
+                        inventoryData.forEach(item => {
+                            const brand = item.brand;
+                            const product = item.product;
+                            
+                            if (!breakdown[brand]) {
+                                breakdown[brand] = {};
+                            }
+                            if (!breakdown[brand][product]) {
+                                breakdown[brand][product] = {
+                                    total: 0,
+                                    booked: 0,
+                                    available: 0,
+                                    on_hold: 0
+                                };
+                            }
+                            
+                            breakdown[brand][product].total++;
+                            if (item.status === 'Booked') {
+                                breakdown[brand][product].booked++;
+                            } else if (item.status === 'Hold') {
+                                breakdown[brand][product].on_hold++;
+                            } else {
+                                breakdown[brand][product].available++;
+                            }
+                        });
+                        
+                        breakdownData = breakdown;
+                        updateModalContent();
+                        updateLastUpdatedModal();
+                        console.log('Breakdown data generated from fallback');
+                        return;
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                }
+                
                 showModalError();
             }
         }
