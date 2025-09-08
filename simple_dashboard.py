@@ -708,11 +708,37 @@ def api_weekly_comparison():
         if not start_date or not end_date:
             return jsonify({"error": "start_date and end_date parameters are required"}), 400
         
-        # Get booked inventory data for the week
-        booked_data = get_filtered_inventory_slots(
-            start_date=start_date,
-            end_date=end_date
-        )
+        # Get scheduled campaigns from campaign ledger for the week
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        campaign_query = """
+        SELECT 
+            "Brand",
+            "Client Name",
+            "Scheduled Live Date",
+            "Status",
+            "Contract ID"
+        FROM campaign_metadata.campaign_ledger
+        WHERE "Scheduled Live Date" >= %s AND "Scheduled Live Date" <= %s
+        """
+        
+        cursor.execute(campaign_query, (start_date, end_date))
+        campaign_results = cursor.fetchall()
+        
+        # Convert campaign data to list of dictionaries
+        scheduled_campaigns = []
+        for row in campaign_results:
+            scheduled_campaigns.append({
+                'brand': row[0],
+                'client_name': row[1],
+                'scheduled_live_date': row[2].isoformat() if row[2] else None,
+                'status': row[3],
+                'contract_id': row[4]
+            })
+        
+        cursor.close()
+        conn.close()
         
         # Get form submissions data for the week
         conn = get_db_connection()
@@ -748,19 +774,16 @@ def api_weekly_comparison():
         cursor.close()
         conn.close()
         
-        # Count booked vs form submissions by brand
-        booked_by_brand = {}
+        # Count scheduled campaigns vs form submissions by brand
+        scheduled_by_brand = {}
         form_by_brand = {}
         
-        # Count booked data
-        for item in booked_data:
-            brand = item.get('brand', 'Unknown')
-            if brand not in booked_by_brand:
-                booked_by_brand[brand] = 0
-            # Handle different status formats from database
-            status = item.get('status', '').lower().strip() if item.get('status') else ''
-            if 'booked' in status:
-                booked_by_brand[brand] += 1
+        # Count scheduled campaigns
+        for campaign in scheduled_campaigns:
+            brand = campaign.get('brand', 'Unknown')
+            if brand not in scheduled_by_brand:
+                scheduled_by_brand[brand] = 0
+            scheduled_by_brand[brand] += 1
         
         # Count form submissions
         for item in form_submissions:
@@ -776,17 +799,17 @@ def api_weekly_comparison():
                 'end_date': end_date
             },
             'summary': {
-                'total_booked': sum(booked_by_brand.values()),
+                'total_scheduled': sum(scheduled_by_brand.values()),
                 'total_form_submissions': sum(form_by_brand.values())
             },
             'by_brand': {}
         }
         
         # Combine data by brand
-        all_brands = set(booked_by_brand.keys()) | set(form_by_brand.keys())
+        all_brands = set(scheduled_by_brand.keys()) | set(form_by_brand.keys())
         for brand in all_brands:
             comparison_data['by_brand'][brand] = {
-                'booked': booked_by_brand.get(brand, 0),
+                'scheduled': scheduled_by_brand.get(brand, 0),
                 'form_submissions': form_by_brand.get(brand, 0)
             }
         

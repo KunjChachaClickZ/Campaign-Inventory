@@ -854,7 +854,7 @@
                                 end_date: weekRange.endDate
                             },
                             summary: {
-                                total_booked: 0,
+                                total_scheduled: 0,
                                 total_form_submissions: 0
                             },
                             by_brand: {}
@@ -894,7 +894,7 @@
         function updateWeeklyView(data, weekRange) {
             const weeklyViewElement = document.getElementById('weeklyView');
             
-            if (!data || (!data.summary.total_booked && !data.summary.total_form_submissions)) {
+            if (!data || (!data.summary.total_scheduled && !data.summary.total_form_submissions)) {
                 weeklyViewElement.innerHTML = `
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-sm font-semibold text-blue-400">📅 Weekly Overview</h3>
@@ -920,7 +920,7 @@
                                 <span class="text-sm font-medium text-gray-300">${brandCode}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-sm font-bold text-green-400">${brandData.booked}</span>
+                                <span class="text-sm font-bold text-green-400">${brandData.scheduled}</span>
                             <span class="text-gray-500">/</span>
                                 <span class="text-sm font-bold text-blue-400">${brandData.form_submissions}</span>
                             </div>
@@ -948,8 +948,8 @@
                     <!-- Summary cards -->
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div class="bg-gray-700 rounded-lg p-3 text-center">
-                            <div class="text-xl font-bold text-green-400">${summary.total_booked}</div>
-                            <div class="text-xs text-gray-400">Booked</div>
+                            <div class="text-xl font-bold text-green-400">${summary.total_scheduled}</div>
+                            <div class="text-xs text-gray-400">Scheduled</div>
                         </div>
                         <div class="bg-gray-700 rounded-lg p-3 text-center">
                             <div class="text-xl font-bold text-blue-400">${summary.total_form_submissions}</div>
