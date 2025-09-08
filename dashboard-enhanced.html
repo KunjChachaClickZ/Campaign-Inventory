@@ -263,6 +263,14 @@
 
     <script>
         const API_BASE = 'https://campaign-inventory-api.onrender.com/api';
+        
+        // Temporary fix: Use working endpoints and generate missing data
+        const WORKING_ENDPOINTS = {
+            inventory: true,
+            brandOverview: true,
+            clients: false, // Missing on deployed server
+            productBreakdown: false // Missing on deployed server
+        };
         let allData = [];
         let filteredData = [];
         let overviewData = [];
@@ -439,19 +447,19 @@
             // Handle different data formats
             if (Array.isArray(data)) {
                 // If data is an array (from fallback), process as before
-                brands.forEach(brand => {
-                    const brandData = data.filter(item => item.brand === brand);
-                    const total = brandData.length;
-                    const booked = brandData.filter(item => item.status === 'Booked').length;
-                    const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
-                    
-                    brandStats[brand] = {
-                        name: brandNames[brand],
-                        total,
-                        booked,
-                        percentage
-                    };
-                });
+            brands.forEach(brand => {
+                const brandData = data.filter(item => item.brand === brand);
+                const total = brandData.length;
+                const booked = brandData.filter(item => item.status === 'Booked').length;
+                const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
+                
+                brandStats[brand] = {
+                    name: brandNames[brand],
+                    total,
+                    booked,
+                    percentage
+                };
+            });
             } else if (typeof data === 'object' && data !== null) {
                 // If data is an object (from brand-overview API), process directly
                 Object.keys(data).forEach(brandKey => {
@@ -500,7 +508,7 @@
                             
                             <!-- Stats -->
                             <div class="mt-1 text-xs text-gray-400">${stats.booked}/${stats.total}</div>
-                        </div>
+                            </div>
                     </div>
                 `;
             }).join('');
@@ -913,13 +921,12 @@
 
         // Load client data for autocomplete
         async function loadClients() {
+            // Since /api/clients endpoint is missing on deployed server, always use fallback
+            console.log('Using fallback method to generate client list from inventory data...');
+            
             try {
-                const response = await fetch(`${API_BASE}/clients`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const clients = await response.json();
+                // Skip the missing endpoint and go directly to fallback
+                throw new Error('Endpoint not available on deployed server');
                 
                 // Group clients by name to avoid duplicates
                 const uniqueClients = new Map();
@@ -1151,17 +1158,14 @@
         }
 
         async function fetchBreakdownData() {
+            // Since /api/brand-product-breakdown endpoint is missing on deployed server, always use fallback
+            console.log('Using fallback method to generate breakdown data from inventory...');
+            
             try {
                 showModalLoading();
                 
-                const response = await fetch(`${API_BASE}/brand-product-breakdown`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                breakdownData = await response.json();
-                updateModalContent();
-                updateLastUpdatedModal();
+                // Skip the missing endpoint and go directly to fallback
+                throw new Error('Endpoint not available on deployed server');
                 
             } catch (error) {
                 console.error('Error fetching breakdown data:', error);
@@ -1202,8 +1206,8 @@
                         });
                         
                         breakdownData = breakdown;
-                        updateModalContent();
-                        updateLastUpdatedModal();
+                updateModalContent();
+                updateLastUpdatedModal();
                         console.log('Breakdown data generated from fallback');
                         return;
                     }
