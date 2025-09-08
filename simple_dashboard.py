@@ -297,31 +297,26 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
             if start_date and end_date:
                 print(f"Filtering by date range: {start_date} to {end_date}")
                 
-                # Convert date format from YYYY-MM-DD to the format used in database
+                # Database stores dates as YYYY-MM-DD HH:MM:SS format
+                # Convert to proper date range filter
                 try:
                     from datetime import datetime
                     start_dt = datetime.strptime(start_date, '%Y-%m-%d')
                     end_dt = datetime.strptime(end_date, '%Y-%m-%d')
                     
-                    # Generate all weekdays between start and end date
+                    # Add one day to end_date to include the full day
                     from datetime import timedelta
-                    current_dt = start_dt
-                    date_conditions = []
+                    end_dt = end_dt + timedelta(days=1)
                     
-                    while current_dt <= end_dt:
-                        # Skip weekends (Saturday=5, Sunday=6)
-                        if current_dt.weekday() < 5:  # Monday=0 to Friday=4
-                            # Format as "Monday, August 25, 2025"
-                            formatted_date = current_dt.strftime('%A, %B %d, %Y')
-                            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
-                        current_dt += timedelta(days=1)
+                    # Format for database query
+                    start_str = start_dt.strftime('%Y-%m-%d')
+                    end_str = end_dt.strftime('%Y-%m-%d')
                     
-                    if date_conditions:
-                        query += f" AND ({' OR '.join(date_conditions)})"
-                        print(f"Added date conditions: {date_conditions}")
+                    query += f" AND \"Dates\" >= '{start_str}' AND \"Dates\" < '{end_str}'"
+                    print(f"Added date filter: Dates >= '{start_str}' AND Dates < '{end_str}'")
                     
                 except Exception as e:
-                    print(f"Error parsing dates: {e}")
+                    print(f"Error in date filtering: {e}")
                     # Fallback to original hardcoded conditions for known ranges
                     if start_date == '2025-08-25' and end_date == '2025-08-29':
                         date_conditions = [
@@ -764,7 +759,9 @@ def api_weekly_comparison():
             brand = item.get('brand', 'Unknown')
             if brand not in booked_by_brand:
                 booked_by_brand[brand] = 0
-            if item.get('status') == 'Booked':
+            # Handle different status formats from database
+            status = item.get('status', '').lower().strip() if item.get('status') else ''
+            if 'booked' in status:
                 booked_by_brand[brand] += 1
         
         # Count form submissions

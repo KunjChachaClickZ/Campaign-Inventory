@@ -385,13 +385,19 @@
                     // Try fallback: load from main inventory endpoint
                     console.log('Trying fallback: loading from main inventory endpoint...');
                     try {
+                        // Create a new AbortController for fallback to avoid reuse issue
+                        const fallbackController = new AbortController();
+                        const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 10000); // 10 second timeout for fallback
+                        
                         const fallbackResponse = await fetch(`${API_BASE}/inventory?limit=1000`, {
-                            signal: controller.signal,
+                            signal: fallbackController.signal,
                             headers: {
                                 'Accept': 'application/json',
                                 'Content-Type': 'application/json'
                             }
                         });
+                        
+                        clearTimeout(fallbackTimeoutId);
                         
                         if (fallbackResponse.ok) {
                             const fallbackData = await fallbackResponse.json();
@@ -472,7 +478,11 @@
             brands.forEach(brand => {
                 const brandData = data.filter(item => item.brand === brand);
                 const total = brandData.length;
-                const booked = brandData.filter(item => item.status === 'Booked').length;
+                // Handle different status formats from database
+                const booked = brandData.filter(item => {
+                    const status = item.status ? item.status.toLowerCase().trim() : '';
+                    return status.includes('booked');
+                }).length;
                 const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
                 
                 brandStats[brand] = {
