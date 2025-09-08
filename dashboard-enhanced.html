@@ -450,6 +450,10 @@
         function updateOverviewSection(data) {
             const overviewSection = document.getElementById('overviewSection');
             
+            console.log('updateOverviewSection called with data:', data);
+            console.log('Data type:', typeof data);
+            console.log('Is array:', Array.isArray(data));
+            
             // Calculate brand-wise statistics
             const brandStats = {};
             const brands = ['AA', 'BG', 'CFO', 'GT', 'HRD', 'CZ'];
@@ -504,9 +508,27 @@
                 });
             }
             
+            console.log('Final brandStats:', brandStats);
+            console.log('Brands to process:', brands);
+            
             // Create clean, professional overview cards
             overviewSection.innerHTML = brands.map(brand => {
                 const stats = brandStats[brand];
+                
+                // Handle missing brand data
+                if (!stats) {
+                    console.warn(`No data found for brand: ${brand}`);
+                    return `
+                        <div class="bg-gray-800 rounded-lg p-3 border border-gray-600 h-full flex flex-col items-center justify-center">
+                            <div class="text-center">
+                                <h3 class="text-xs font-semibold text-white mb-2">${brandNames[brand] || brand}</h3>
+                                <div class="text-lg font-bold text-gray-400">N/A</div>
+                                <div class="mt-1 text-xs text-gray-500">No data</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 const colorClass = stats.percentage >= 70 ? 'text-green-400' : 
                                  stats.percentage >= 40 ? 'text-yellow-400' : 'text-red-400';
                 const bgColorClass = stats.percentage >= 70 ? 'bg-green-500' : 
