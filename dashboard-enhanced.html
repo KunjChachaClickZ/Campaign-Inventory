@@ -16,19 +16,19 @@
         </header>
 
         <!-- Overview Section with Weekly View Inline -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
             <!-- Brand Overview - Takes 3/4 of the width -->
-            <div class="lg:col-span-3 bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-white">📈 Brand Overview</h2>
-                    <button onclick="openProductBreakdownModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="lg:col-span-3 bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-white">📈 Brand Overview</h2>
+                    <button onclick="openProductBreakdownModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
-                        View All Products
+                        View All
                     </button>
                         </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6" id="overviewSection">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="overviewSection">
                     <!-- Skeleton loading cards -->
                     <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 animate-pulse">
                         <div class="h-6 bg-gray-700 rounded w-3/4 mx-auto mb-4"></div>
@@ -65,67 +65,67 @@
         </div>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
                 <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-blue-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-2 rounded-full bg-blue-500 bg-opacity-20">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                     </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Total Slots</p>
-                        <p class="text-2xl font-bold text-white" id="totalSlots">Loading...</p>
+                    <div class="ml-3">
+                        <p class="text-gray-400 text-xs">Total Slots</p>
+                        <p class="text-lg font-bold text-white" id="totalSlots">Loading...</p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
                 <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-green-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-2 rounded-full bg-green-500 bg-opacity-20">
+                        <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                     </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Booked</p>
-                        <p class="text-2xl font-bold text-green-400" id="totalBooked">Loading...</p>
+                    <div class="ml-3">
+                        <p class="text-gray-400 text-xs">Booked</p>
+                        <p class="text-lg font-bold text-green-400" id="totalBooked">Loading...</p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
                 <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-yellow-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-2 rounded-full bg-yellow-500 bg-opacity-20">
+                        <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">On Hold</p>
-                        <p class="text-2xl font-bold text-yellow-400" id="totalOnHold">Loading...</p>
+                    <div class="ml-3">
+                        <p class="text-gray-400 text-xs">On Hold</p>
+                        <p class="text-lg font-bold text-yellow-400" id="totalOnHold">Loading...</p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
                 <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-gray-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-2 rounded-full bg-gray-500 bg-opacity-20">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                         </svg>
                     </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Available</p>
-                        <p class="text-2xl font-bold text-gray-400" id="totalAvailable">Loading...</p>
+                    <div class="ml-3">
+                        <p class="text-gray-400 text-xs">Available</p>
+                        <p class="text-lg font-bold text-gray-400" id="totalAvailable">Loading...</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Filters Section -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-10">
-            <h2 class="text-xl font-bold text-white mb-6">🔍 Filters</h2>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+            <h2 class="text-lg font-bold text-white mb-4">🔍 Filters</h2>
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
                 <!-- Client Filter -->
                 <div class="lg:col-span-3">
@@ -208,8 +208,8 @@
         </div>
 
         <!-- Status Filter (Above Results) -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-6">🎯 Further Filter Results</h2>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+            <h2 class="text-lg font-bold text-white mb-4">🎯 Further Filter Results</h2>
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
                 <div class="lg:col-span-4">
                     <label class="block text-sm font-medium text-gray-400 mb-2">Status Filter</label>
@@ -236,18 +236,18 @@
         </div>
 
         <!-- Results Table -->
-        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-            <h2 class="text-xl font-bold text-white mb-4">📊 Filtered Inventory Results</h2>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+            <h2 class="text-lg font-bold text-white mb-3">📊 Filtered Inventory Results</h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-700">
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Sr.No.</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Product</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Brand</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Date</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Status</th>
-                            <th class="text-left py-3 px-4 font-medium text-gray-400">Booking ID</th>
+                            <th class="text-left py-2 px-3 font-medium text-gray-400 text-xs">Sr.No.</th>
+                            <th class="text-left py-2 px-3 font-medium text-gray-400 text-xs">Product</th>
+                            <th class="text-left py-2 px-3 font-medium text-gray-400 text-xs">Brand</th>
+                            <th class="text-left py-2 px-3 font-medium text-gray-400 text-xs">Date</th>
+                            <th class="text-left py-2 px-3 font-medium text-gray-400 text-xs">Status</th>
+                            <th class="text-left py-2 px-3 font-medium text-gray-400 text-xs">Booking ID</th>
                         </tr>
                     </thead>
                     <tbody id="resultsTable">
@@ -314,7 +314,7 @@
                 
                 // Add timeout to prevent hanging
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
                 
                 const response = await fetch(`${API_BASE}/brand-overview`, {
                     signal: controller.signal
@@ -411,30 +411,20 @@
                                    stats.percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500';
                 
                 return `
-                    <div class="bg-gray-800 rounded-lg p-4 sm:p-6 cursor-pointer hover:bg-gray-700 transition-all duration-300 border border-gray-600 hover:border-gray-500 h-full flex flex-col items-center justify-center group relative overflow-hidden" onclick="openProductBreakdownModal('${stats.name}')">
-                        <!-- Subtle background gradient -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
-                        
+                    <div class="bg-gray-800 rounded-lg p-3 cursor-pointer hover:bg-gray-700 transition-all duration-300 border border-gray-600 hover:border-gray-500 h-full flex flex-col items-center justify-center group relative overflow-hidden" onclick="openProductBreakdownModal('${stats.name}')">
                         <!-- Content -->
                         <div class="relative z-10 text-center">
                             <!-- Brand Name -->
-                            <h3 class="text-sm sm:text-lg font-semibold text-white mb-3 sm:mb-4 group-hover:text-blue-300 transition-colors duration-300">${stats.name}</h3>
+                            <h3 class="text-xs font-semibold text-white mb-2 group-hover:text-blue-300 transition-colors duration-300">${stats.name}</h3>
                             
                             <!-- Percentage with enhanced styling -->
                             <div class="relative">
-                                <div class="text-2xl sm:text-4xl font-bold ${colorClass} group-hover:scale-110 transition-transform duration-300">${stats.percentage}%</div>
-                                <!-- Subtle glow effect -->
-                                <div class="absolute inset-0 ${colorClass} opacity-20 blur-sm group-hover:opacity-30 transition-opacity duration-300"></div>
+                                <div class="text-lg font-bold ${colorClass} group-hover:scale-110 transition-transform duration-300">${stats.percentage}%</div>
                         </div>
                             
-                            <!-- Click hint - hidden on mobile -->
-                            <div class="mt-2 sm:mt-3 text-xs text-gray-500 group-hover:text-gray-400 transition-colors duration-300 hidden sm:block">
-                                Click for details
-                            </div>
+                            <!-- Stats -->
+                            <div class="mt-1 text-xs text-gray-400">${stats.booked}/${stats.total}</div>
                         </div>
-                        
-                        <!-- Hover effect overlay -->
-                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-500 rounded-lg"></div>
                     </div>
                 `;
             }).join('');
@@ -447,7 +437,7 @@
                 
                 // Add timeout to prevent hanging
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
                 
                 // Build query parameters
                 const params = new URLSearchParams();
@@ -520,13 +510,13 @@
             
             tbody.innerHTML = data.slice(0, 20).map((item, index) => `
                 <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
-                    <td class="py-3 px-4 text-center text-gray-400 font-medium">${index + 1}</td>
-                    <td class="py-3 px-4">
-                        <span class="text-blue-400 cursor-pointer">${item.product || 'N/A'}</span>
+                    <td class="py-2 px-3 text-center text-gray-400 font-medium text-xs">${index + 1}</td>
+                    <td class="py-2 px-3">
+                        <span class="text-blue-400 cursor-pointer text-xs">${item.product || 'N/A'}</span>
                     </td>
-                    <td class="py-3 px-4">${item.brand || 'N/A'}</td>
-                    <td class="py-3 px-4">${item.slot_date || 'N/A'}</td>
-                    <td class="py-3 px-4">
+                    <td class="py-2 px-3 text-xs">${item.brand || 'N/A'}</td>
+                    <td class="py-2 px-3 text-xs">${item.slot_date || 'N/A'}</td>
+                    <td class="py-2 px-3">
                         <span class="px-2 py-1 rounded-full text-xs font-medium ${
                             item.status === 'Booked' ? 'bg-green-500/20 text-green-300' :
                             item.status === 'Hold' ? 'bg-yellow-500/20 text-yellow-300' :
@@ -535,7 +525,7 @@
                             ${item.status || 'N/A'}
                         </span>
                     </td>
-                    <td class="py-3 px-4">${item.booking_id || 'N/A'}</td>
+                    <td class="py-2 px-3 text-xs">${item.booking_id || 'N/A'}</td>
                 </tr>
             `).join('');
             
