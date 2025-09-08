@@ -998,8 +998,73 @@
                     if (fallbackResponse.ok) {
                         const inventoryData = await fallbackResponse.json();
                         
-                        // Since inventory data doesn't have client names, create a mock client list
-                        // This is a temporary solution until we can access the campaign ledger
+                        // Get real client data from campaign ledger API
+                        try {
+                            const clientResponse = await fetch(`${API_BASE}/campaign-ledger?limit=1000`);
+                            if (clientResponse.ok) {
+                                const clientData = await clientResponse.json();
+                                
+                                // Process real client data
+                                const clientMap = new Map();
+                                clientData.forEach(item => {
+                                    if (item.client && item.client.trim()) {
+                                        const clientName = item.client.trim();
+                                        if (!clientMap.has(clientName)) {
+                                            clientMap.set(clientName, {
+                                                client_name: clientName,
+                                                total_bookings: 0,
+                                                brands: new Set()
+                                            });
+                                        }
+                                        const client = clientMap.get(clientName);
+                                        client.total_bookings++;
+                                        if (item.brand) {
+                                            client.brands.add(item.brand);
+                                        }
+                                    }
+                                });
+                                
+                                const clients = Array.from(clientMap.values()).map(client => ({
+                                    client_name: client.client_name,
+                                    total_bookings: client.total_bookings,
+                                    brands: Array.from(client.brands)
+                                }));
+                                
+                                console.log(`Loaded ${clients.length} real clients from campaign ledger`);
+                                
+                                // Process the real client data
+                                const uniqueClients = new Map();
+                                clients.forEach(client => {
+                                    if (!uniqueClients.has(client.client_name)) {
+                                        uniqueClients.set(client.client_name, {
+                                            name: client.client_name,
+                                            totalBookings: 0,
+                                            brands: new Set()
+                                        });
+                                    }
+                                    const clientData = uniqueClients.get(client.client_name);
+                                    clientData.totalBookings += client.total_bookings || 1;
+                                    if (client.brands) {
+                                        client.brands.forEach(brand => clientData.brands.add(brand));
+                                    }
+                                });
+                                
+                                // Convert to array and sort
+                                allClientsData = Array.from(uniqueClients.values())
+                                    .map(client => ({
+                                        ...client,
+                                        brands: Array.from(client.brands).join(', ')
+                                    }))
+                                    .sort((a, b) => a.name.localeCompare(b.name));
+                                
+                                console.log(`Loaded ${allClientsData.length} unique clients from real data`);
+                                return;
+                            }
+                        } catch (clientError) {
+                            console.error('Failed to load real client data:', clientError);
+                        }
+                        
+                        // Fallback to mock data if real data fails
                         const mockClients = [
                             { client_name: 'Sample Client 1', total_bookings: 5, brands: ['AA', 'BG'] },
                             { client_name: 'Sample Client 2', total_bookings: 3, brands: ['CFO', 'GT'] },
@@ -1147,7 +1212,7 @@
 
         // Product Breakdown Modal Functions
         const PRODUCT_BREAKDOWN_CONFIG = {
-            MIN_BOOKING_PERCENTAGE: 7, // Set the minimum booking percentage for products to be displayed
+            MIN_BOOKING_PERCENTAGE: 1, // Set the minimum booking percentage for products to be displayed
             DISPLAY: {
                 SHOW_THRESHOLD_NOTE: true, // Whether to show the note about the threshold in the modal
             },
@@ -1234,9 +1299,11 @@
                             }
                             
                             breakdown[brand][product].total++;
-                            if (item.status === 'Booked') {
+                            // Handle different status formats from database
+                            const status = item.status ? item.status.toLowerCase().trim() : '';
+                            if (status.includes('booked')) {
                                 breakdown[brand][product].booked++;
-                            } else if (item.status === 'Hold') {
+                            } else if (status.includes('hold') || status.includes('on hold')) {
                                 breakdown[brand][product].on_hold++;
                             } else {
                                 breakdown[brand][product].available++;
