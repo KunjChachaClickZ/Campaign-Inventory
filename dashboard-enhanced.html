@@ -320,10 +320,28 @@
             try {
                 console.log(`Fetching overview data (attempt ${retryCount + 1}/${maxRetries + 1})`);
                 console.log(`API URL: ${API_BASE}/brand-overview`);
+                console.log(`Timeout: 15 seconds`);
+                
+                // Show loading state
+                if (retryCount === 0) {
+                    document.getElementById('overviewSection').innerHTML = `
+                        <div class="col-span-full text-center text-blue-400">
+                            <div class="mb-4">
+                                <div class="w-16 h-16 mx-auto mb-4 bg-blue-500/20 rounded-full flex items-center justify-center animate-spin">
+                                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-lg font-semibold mb-2">Loading brand data...</div>
+                                <div class="text-sm text-gray-400 mb-4">This may take a few seconds</div>
+                            </div>
+                        </div>
+                    `;
+                }
                 
                 // Add timeout to prevent hanging
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
                 
                 const response = await fetch(`${API_BASE}/brand-overview`, {
                     signal: controller.signal,
@@ -521,7 +539,7 @@
                 
                 // Add timeout to prevent hanging
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
                 
                 // Build query parameters
                 const params = new URLSearchParams();
