@@ -495,8 +495,21 @@
             } else if (Array.isArray(data)) {
                 // If data is an array (from updated brand-overview API), process it
                 console.log('Processing array data from brand-overview API');
+                
+                // Map old brand codes to new ones (temporary fix until backend updates)
+                const brandCodeMapping = {
+                    'AC': 'AA',  // Accountancy Age
+                    'BO': 'BG',  // Bobsguide
+                    'TH': 'CFO', // The CFO
+                    'GL': 'GT',  // Global Treasurer
+                    'HR': 'HRD', // HRD Connect
+                    'CL': 'CZ'   // ClickZ
+                };
+                
                 data.forEach(brandData => {
-                    const brand = brandData.brand;
+                    const oldBrand = brandData.brand;
+                    const brand = brandCodeMapping[oldBrand] || oldBrand;
+                    
                     if (brands.includes(brand)) {
                         brandStats[brand] = {
                             name: brandData.name || brandNames[brand] || brand,
@@ -539,13 +552,13 @@
                     const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
                     
                     // Map brand key to our internal brand codes
-                    let brandCode = 'AC'; // default
-                    if (brandKey === 'Accountancy Age') brandCode = 'AC';
-                    else if (brandKey === 'Bobsguide') brandCode = 'BO';
-                    else if (brandKey === 'The CFO') brandCode = 'TH';
-                    else if (brandKey === 'Global Treasurer') brandCode = 'GL';
-                    else if (brandKey === 'HRD Connect') brandCode = 'HR';
-                    else if (brandKey === 'ClickZ') brandCode = 'CL';
+                    let brandCode = 'AA'; // default
+                    if (brandKey === 'Accountancy Age') brandCode = 'AA';
+                    else if (brandKey === 'Bobsguide') brandCode = 'BG';
+                    else if (brandKey === 'The CFO') brandCode = 'CFO';
+                    else if (brandKey === 'Global Treasurer') brandCode = 'GT';
+                    else if (brandKey === 'HRD Connect') brandCode = 'HRD';
+                    else if (brandKey === 'ClickZ') brandCode = 'CZ';
                     
                     brandStats[brandCode] = {
                         name: brandNames[brandCode],
