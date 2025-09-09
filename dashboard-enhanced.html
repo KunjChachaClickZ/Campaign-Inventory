@@ -1189,7 +1189,7 @@
             
             // Show loading progress
             let loadingSteps = 0;
-            const totalSteps = 4;
+            const totalSteps = 5;
             
             function updateLoadingProgress(step) {
                 loadingSteps++;
@@ -1203,9 +1203,10 @@
             // Load main dashboard data first
             fetchOverviewData().then(() => updateLoadingProgress(1));
             fetchData().then(() => updateLoadingProgress(2));
+            fetchWeeklyData().then(() => updateLoadingProgress(3));
             loadClients().then(() => {
                 setupClientFilter(); // Set up autocomplete after clients are loaded
-                updateLoadingProgress(3);
+                updateLoadingProgress(4);
             });
             
             // Load weekly view independently (non-blocking)
@@ -1314,8 +1315,16 @@
                             }
                         });
                         
+                        // Calculate percentages for each product
+                        Object.keys(breakdown).forEach(brand => {
+                            Object.keys(breakdown[brand]).forEach(product => {
+                                const data = breakdown[brand][product];
+                                data.percentage = data.total > 0 ? Math.round((data.booked / data.total) * 100) : 0;
+                            });
+                        });
+                        
                         breakdownData = breakdown;
-                        console.log('Generated breakdown data:', breakdown);
+                        console.log('Generated breakdown data with percentages:', breakdown);
                         updateModalContent();
                         updateLastUpdatedModal();
                         console.log('Breakdown data generated from fallback');
