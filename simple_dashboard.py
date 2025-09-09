@@ -1214,6 +1214,6 @@ HTML_TEMPLATE = """
 """
 
 if __name__ == '__main__':
-    # Force redeploy - updated to ensure latest endpoints are available
+    # Force redeploy - updated to ensure latest endpoints are available - v3
     port = int(os.getenv('PORT', 5002))
     app.run(debug=True, port=port)
