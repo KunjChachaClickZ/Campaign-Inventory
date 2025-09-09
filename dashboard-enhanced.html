@@ -496,19 +496,8 @@
                 // If data is an array (from updated brand-overview API), process it
                 console.log('Processing array data from brand-overview API');
                 
-                // Map old brand codes to new ones (temporary fix until backend updates)
-                const brandCodeMapping = {
-                    'AC': 'AA',  // Accountancy Age
-                    'BO': 'BG',  // Bobsguide
-                    'TH': 'CFO', // The CFO
-                    'GL': 'GT',  // Global Treasurer
-                    'HR': 'HRD', // HRD Connect
-                    'CL': 'CZ'   // ClickZ
-                };
-                
                 data.forEach(brandData => {
-                    const oldBrand = brandData.brand;
-                    const brand = brandCodeMapping[oldBrand] || oldBrand;
+                    const brand = brandData.brand; // Use brand code directly from database
                     
                     if (brands.includes(brand)) {
                         brandStats[brand] = {
