@@ -595,9 +595,20 @@ def api_brand_overview():
         
         # Format the data for the frontend - return array format that frontend expects
         result = []
+        
+        # Proper brand code mapping
+        brand_code_mapping = {
+            'Accountancy Age': 'AA',
+            'Bobsguide': 'BG',
+            'The CFO': 'CFO',
+            'Global Treasurer': 'GT',
+            'HRD Connect': 'HRD',
+            'ClickZ': 'CZ'
+        }
+        
         for brand_data in brands_data:
             brand_name = brand_data['brand']
-            brand_code = brand_data.get('brand_code', brand_name.split()[0][:2].upper())
+            brand_code = brand_code_mapping.get(brand_name, brand_name.split()[0][:2].upper())
             
             result.append({
                 'brand': brand_code,

@@ -539,13 +539,13 @@
                     const percentage = total > 0 ? Math.round((booked / total) * 100) : 0;
                     
                     // Map brand key to our internal brand codes
-                    let brandCode = 'AA'; // default
-                    if (brandKey === 'Accountancy Age') brandCode = 'AA';
-                    else if (brandKey === 'Bobsguide') brandCode = 'BG';
-                    else if (brandKey === 'The CFO') brandCode = 'CFO';
-                    else if (brandKey === 'Global Treasurer') brandCode = 'GT';
-                    else if (brandKey === 'HRD Connect') brandCode = 'HRD';
-                    else if (brandKey === 'ClickZ') brandCode = 'CZ';
+                    let brandCode = 'AC'; // default
+                    if (brandKey === 'Accountancy Age') brandCode = 'AC';
+                    else if (brandKey === 'Bobsguide') brandCode = 'BO';
+                    else if (brandKey === 'The CFO') brandCode = 'TH';
+                    else if (brandKey === 'Global Treasurer') brandCode = 'GL';
+                    else if (brandKey === 'HRD Connect') brandCode = 'HR';
+                    else if (brandKey === 'ClickZ') brandCode = 'CL';
                     
                     brandStats[brandCode] = {
                         name: brandNames[brandCode],
