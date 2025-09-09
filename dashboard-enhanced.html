@@ -507,6 +507,30 @@
                     }
                 });
             } else if (typeof data === 'object' && data !== null) {
+                // If data is an object (from current brand-overview API), process it
+                console.log('Processing object data from current brand-overview API');
+                Object.entries(data).forEach(([brandKey, brandData]) => {
+                    // Map brand keys to brand codes
+                    const brandCodeMap = {
+                        'Accountancy Age': 'AA',
+                        'Bobsguide': 'BG', 
+                        'The CFO': 'CFO',
+                        'Global Treasurer': 'GT',
+                        'HRD Connect': 'HRD',
+                        'ClickZ': 'CZ'
+                    };
+                    const brand = brandCodeMap[brandKey] || brandKey;
+                    
+                    if (brands.includes(brand)) {
+                        brandStats[brand] = {
+                            name: brandKey,
+                            total: brandData.total_slots || 0,
+                            booked: brandData.booked || 0,
+                            percentage: Math.round(((brandData.booked || 0) / (brandData.total_slots || 1)) * 100)
+                        };
+                    }
+                });
+            } else {
                 // If data is an object (from old brand-overview API), process directly
                 Object.keys(data).forEach(brandKey => {
                     const brandData = data[brandKey];
