@@ -1,204 +1,276 @@
-# 📊 Campaign Inventory Dashboard
+# Campaign Inventory Management System
 
-A real-time inventory tracking dashboard for campaign management across multiple brands.
+A powerful command-line tool for managing campaign inventory across multiple brands, built with Python and PostgreSQL.
 
 ## 🚀 Features
 
-### ✅ **Enhanced Dashboard Features:**
-- **📈 Brand Overview**: Static overview showing booking percentages for all brands
-- **🔍 Advanced Filtering**: Filter by Product, Brand, Date Range, and Status
-- **📊 Real-time Data**: Live data from PostgreSQL database
-- **🎯 Two-Stage Filtering**: Initial filters + additional status filtering
-- **📱 Responsive Design**: Works on desktop and mobile devices
+- **Real-time Inventory Tracking**: Monitor available, booked, and on-hold inventory slots across 6 brands
+- **Multi-Brand Support**: Accountancy Age (AA), Bobsguide (BG), The CFO (CFO), Global Treasurer (GT), HRD Connect (HRD), ClickZ (CZ)
+- **Advanced Filtering**: Filter by brand, product, date range, client, and status
+- **Data Export**: Export data to CSV or JSON formats
+- **Interactive Dashboard**: View key metrics and inventory summaries
+- **Connection Pooling**: Efficient database connection management
+- **Date Range Support**: Flexible date filtering with proper database format handling
 
-### 📋 **Available Products:**
-- Hosted Content
-- LVB Mailshot
-- Leading Voice Broadcast
-- Mailshot
-- Newsletter Category Sponsorship
-- Newsletter Featured Placement
-- Newsletter Sponsorship
-- Original Content Production
-- Weekender Newsletter Sponsorship
+## 📋 Prerequisites
 
-### 🏢 **Supported Brands:**
-- Accountancy Age (AA)
-- Bobsguide (BG)
-- The CFO (CFO)
-- Global Treasurer (GT)
-- HRD Connect (HRD)
+- Python 3.9+
+- PostgreSQL database access
+- Required Python packages (see requirements.txt)
 
-## 🛠️ Setup Instructions
+## 🛠️ Installation
 
-### **Backend Setup (Flask API):**
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd Campaign-Inventory
+   ```
 
-1. **Install Dependencies:**
+2. **Create virtual environment**:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Database Configuration:**
-   - Ensure PostgreSQL database is running
-   - Update database connection in `simple_dashboard.py`
-
-3. **Start Flask Server:**
-   ```bash
-   python simple_dashboard.py
+4. **Configure environment variables**:
+   Create a `.env` file with your database credentials:
+   ```env
+   DB_HOST=your-database-host
+   DB_PORT=5432
+   DB_NAME=analytics
+   DB_USER=your-username
+   DB_PASSWORD=your-password
    ```
-   - Server runs on: `http://localhost:5000`
 
-### **Frontend Setup:**
+## 🎯 Usage
 
-1. **Local Development:**
-   - Open `index.html` in your browser
-   - Or use a local server: `python -m http.server 8000`
+### Basic Commands
 
-2. **GitHub Pages Deployment:**
-   - Push to GitHub repository
-   - Enable GitHub Pages in repository settings
-   - Access at: `https://kunjchachaclickz.github.io/Campaign-Inventory/`
-
-## 📡 API Endpoints
-
-### **Main Inventory Endpoint:**
+#### Show Dashboard
+```bash
+python3 cli.py dashboard
 ```
-GET /api/inventory
+Displays a comprehensive dashboard with:
+- Brand overview with utilization rates
+- Recent inventory slots
+- Key metrics and statistics
+
+#### List Inventory
+```bash
+# List all inventory slots
+python3 cli.py list
+
+# Filter by date range
+python3 cli.py list --start-date 2025-01-06 --end-date 2025-01-10
+
+# Filter by brand
+python3 cli.py list --brand "Accountancy Age"
+
+# Filter by product
+python3 cli.py list --product "Press_Release"
+
+# Filter by status
+python3 cli.py list --status "booked"
+
+# Combine filters
+python3 cli.py list --brand "AA" --start-date 2025-01-06 --end-date 2025-01-10
 ```
 
-**Query Parameters:**
-- `product`: Filter by product type
-- `brand`: Filter by brand (AA, BG, CFO, GT, HRD)
-- `start_date`: Start date (YYYY-MM-DD)
-- `end_date`: End date (YYYY-MM-DD)
-- `status`: Filter by status (Booked, Available, On Hold)
+#### Show Available Options
+```bash
+# Show available brands
+python3 cli.py brands
 
-**Example:**
-```
-GET /api/inventory?product=Mailshot&brand=AA&start_date=2025-08-25&end_date=2025-08-29&status=Booked
+# Show available products
+python3 cli.py products
 ```
 
-### **Other Endpoints:**
-- `GET /api/campaign-ledger`: Campaign ledger data
-- `GET /api/brand-overview`: Brand overview statistics
-- `GET /api/current-week-inventory`: Current week inventory
+#### Export Data
+```bash
+# Export inventory to CSV
+python3 cli.py export inventory --format csv --start-date 2025-01-06 --end-date 2025-01-10
 
-## 🎯 Usage Guide
+# Export brand summaries to JSON
+python3 cli.py export brands --format json
 
-### **1. View Brand Overview:**
-- The top section shows booking percentages for all brands
-- Color-coded: Green (≥70%), Yellow (40-69%), Red (<40%)
-- Updates on page refresh
+# Export with filters
+python3 cli.py export inventory --format csv --brand "AA" --product "Press_Release"
+```
 
-### **2. Apply Filters:**
-- **Product**: Select specific product type
-- **Brand**: Choose specific brand
-- **Date Range**: Set start and end dates
-- **Search**: Click "Search" to apply filters
+### Advanced Usage
 
-### **3. Further Filter Results:**
-- After getting initial results, use the "Further Filter Results" section
-- **Status Filter**: Filter by Booked, Available, or On Hold
-- **Apply**: Click "Filter by Status" to refine results
+#### Custom Date Ranges
+The system supports flexible date filtering. Dates are automatically converted to the database format:
+```bash
+python3 cli.py list --start-date 2025-01-06 --end-date 2025-01-20
+```
 
-### **4. Reset Filters:**
-- Click "Reset" to clear all filters
-- Click "Clear Status Filter" to clear only status filter
+#### Filtering Options
+- **Brand**: Filter by specific brand (AA, BG, CFO, GT, HRD, CZ)
+- **Product**: Filter by product type (Press_Release, Mailshot, etc.)
+- **Status**: Filter by booking status (booked, available, hold)
+- **Client**: Filter by client name
+- **Date Range**: Filter by date range
 
-## 🔧 Technical Details
+## 🏗️ Architecture
 
-### **Frontend:**
-- **HTML5** with **Tailwind CSS**
-- **Vanilla JavaScript** (no framework dependencies)
-- **Responsive design** for all screen sizes
+### Core Components
 
-### **Backend:**
-- **Python Flask** API
-- **PostgreSQL** database with psycopg2
-- **CORS enabled** for cross-origin requests
+1. **Database Module** (`database.py`):
+   - Connection pooling for efficient database access
+   - Query execution with automatic connection management
+   - Support for complex date filtering
 
-### **Database Schema:**
-- Tables: `aa_inventory`, `bob_inventory`, `cfo_inventory`, `gt_inventory`, `hrd_inventory`
-- Schema: `campaign_metadata`
-- Key columns: `ID`, `Dates`, `Booked/Not Booked`, `Booking ID`, `Media_Asset`
+2. **Data Models** (`models.py`):
+   - `InventorySlot`: Represents individual inventory slots
+   - `BrandSummary`: Brand-level inventory summaries
+   - `Client`: Client information and metrics
+   - `CampaignMetrics`: Overall campaign KPIs
+   - `FilterOptions`: Flexible filtering system
 
-## 🚀 Deployment
+3. **CLI Interface** (`cli.py`):
+   - Command-line interface with argparse
+   - Interactive dashboard display
+   - Data export functionality
+   - Comprehensive error handling
 
-### **GitHub Pages:**
-1. Push code to GitHub repository
-2. Go to Settings → Pages
-3. Select source: "Deploy from a branch"
-4. Choose branch: `main`
-5. Access URL: `https://kunjchachaclickz.github.io/Campaign-Inventory/`
+### Database Schema
 
-### **Backend Deployment (Optional):**
-- Deploy Flask app to Render.com, Heroku, or similar
-- Update `API_BASE` URL in `index.html`
-- Ensure CORS allows GitHub Pages domain
+The system works with the following key tables:
+- **Inventory Tables**: `{brand}_inventory` (6 tables)
+- **Campaign Ledger**: `campaign_ledger`
+- **Booking Tables**: `{brand}_{product}_booking`
 
-## 📊 Data Flow
+## 📊 Data Models
 
-1. **Page Load**: Fetches overview data and initial inventory data
-2. **Filter Application**: Sends filter parameters to API
-3. **Status Filtering**: Client-side filtering of results
-4. **Real-time Updates**: Data refreshes on filter changes
+### InventorySlot
+```python
+@dataclass
+class InventorySlot:
+    slot_id: int
+    slot_date: str
+    status: str
+    booking_id: str
+    product: str
+    brand: str
+    client_name: str
+    contract_id: str
+```
 
-## 🔍 Troubleshooting
+### BrandSummary
+```python
+@dataclass
+class BrandSummary:
+    brand: str
+    name: str
+    total_slots: int
+    booked: int
+    available: int
+    on_hold: int
+    percentage: float
+```
 
-### **Common Issues:**
+## 🔧 Configuration
 
-1. **"Error loading data"**
-   - Check if Flask server is running
-   - Verify database connection
-   - Check browser console for errors
+### Environment Variables
+- `DB_HOST`: Database host
+- `DB_PORT`: Database port (default: 5432)
+- `DB_NAME`: Database name
+- `DB_USER`: Database username
+- `DB_PASSWORD`: Database password
+- `DATABASE_URL`: Alternative database URL format
 
-2. **"CORS Error"**
-   - Ensure Flask-CORS is installed
-   - Check CORS configuration in `simple_dashboard.py`
+### Database Connection
+The system uses pg8000 for PostgreSQL connectivity with connection pooling for optimal performance.
 
-3. **"No results found"**
-   - Verify date format (YYYY-MM-DD)
-   - Check product/brand names match exactly
-   - Ensure database has data for selected filters
+## 📈 Performance Features
 
-### **Debug Mode:**
-- Open browser developer tools (F12)
-- Check Console tab for API calls and errors
-- Check Network tab for request/response details
+- **Connection Pooling**: Reuses database connections for better performance
+- **Efficient Queries**: Optimized SQL queries with proper indexing
+- **Lazy Loading**: Data is loaded only when needed
+- **Memory Management**: Automatic cleanup of database connections
 
-## 📝 Recent Updates
+## 🚨 Error Handling
 
-### **v2.0 - Enhanced Dashboard:**
-- ✅ Added Brand Overview section
-- ✅ Expanded product dropdown (9 products)
-- ✅ Added status filtering below results
-- ✅ Improved UI/UX design
-- ✅ GitHub Pages deployment ready
+The system includes comprehensive error handling:
+- Database connection errors
+- Query execution errors
+- Invalid date formats
+- Missing required parameters
+- Graceful degradation on errors
 
-### **v1.0 - Basic Dashboard:**
-- ✅ Basic filtering functionality
-- ✅ Real-time data display
-- ✅ Date range filtering
-- ✅ Product and brand filtering
+## 📝 Examples
+
+### Daily Inventory Check
+```bash
+# Check today's inventory
+python3 cli.py dashboard
+
+# Export today's data
+python3 cli.py export inventory --format csv --start-date $(date +%Y-%m-%d) --end-date $(date +%Y-%m-%d)
+```
+
+### Weekly Report
+```bash
+# Generate weekly report
+python3 cli.py list --start-date 2025-01-06 --end-date 2025-01-12
+
+# Export weekly data
+python3 cli.py export inventory --format csv --start-date 2025-01-06 --end-date 2025-01-12
+```
+
+### Brand-Specific Analysis
+```bash
+# Analyze specific brand
+python3 cli.py list --brand "Accountancy Age" --start-date 2025-01-01 --end-date 2025-01-31
+
+# Export brand data
+python3 cli.py export inventory --format json --brand "AA"
+```
+
+## 🔄 Migration from Flask
+
+This CLI system replaces the previous Flask web application with:
+- ✅ Better performance (no web server overhead)
+- ✅ Easier automation and scripting
+- ✅ Command-line integration
+- ✅ Data export capabilities
+- ✅ Simplified deployment
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
+4. Add tests if applicable
 5. Submit a pull request
 
-## 📞 Support
+## 📄 License
 
-For issues or questions:
-1. Check the troubleshooting section
-2. Review browser console for errors
-3. Verify API endpoints are working
-4. Check database connectivity
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions:
+1. Check the documentation
+2. Review the examples
+3. Check the issue tracker
+4. Contact the development team
+
+## 🔮 Future Enhancements
+
+- [ ] Real-time monitoring
+- [ ] Advanced analytics
+- [ ] Automated reporting
+- [ ] Web interface option
+- [ ] API endpoints
+- [ ] Integration with external systems
 
 ---
 
-**Last Updated**: August 25, 2025
-**Version**: 2.0
-**Status**: Production Ready ✅
+**Built with ❤️ for efficient campaign inventory management**

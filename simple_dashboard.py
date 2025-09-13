@@ -40,21 +40,91 @@ if os.getenv('DATABASE_URL'):
         'password': url.password
     }
 
+# Connection pool for better performance
+_connection_pool = None
+_connection_lock = None
+
+def init_connection_pool():
+    """Initialize connection pool"""
+    global _connection_pool, _connection_lock
+    if _connection_pool is None:
+        import threading
+        _connection_lock = threading.Lock()
+        _connection_pool = []
+
 def get_db_connection():
-    try:
-        if PG8000_AVAILABLE:
+    """Get database connection with connection pooling"""
+    global _connection_pool, _connection_lock
+    
+    if not PG8000_AVAILABLE:
+        raise Exception("pg8000 not available")
+    
+    init_connection_pool()
+    
+    with _connection_lock:
+        # Try to reuse existing connection
+        if _connection_pool:
+            conn = _connection_pool.pop()
+            try:
+                # Test if connection is still alive
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.close()
+                return conn
+            except:
+                # Connection is dead, create new one
+                pass
+        
+        # Create new connection
+        try:
             conn = pg8000.connect(**DB_CONFIG)
             print("Database connection successful with pg8000!")
             return conn
-        else:
-            raise Exception("pg8000 not available")
-    except Exception as e:
-        print(f"Database connection error: {e}")
-        raise e
+        except Exception as e:
+            print(f"Database connection error: {e}")
+            raise e
+
+def return_db_connection(conn):
+    """Return connection to pool for reuse"""
+    global _connection_pool, _connection_lock
+    
+    if conn and _connection_pool is not None:
+        with _connection_lock:
+            if len(_connection_pool) < 5:  # Limit pool size
+                _connection_pool.append(conn)
+            else:
+                conn.close()
 
 def create_cursor(conn):
     """Create a cursor"""
     return conn.cursor()
+
+def execute_query(query, params=None, fetch_all=True):
+    """Execute query with automatic connection management"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
+        if fetch_all:
+            results = cursor.fetchall()
+        else:
+            results = cursor.fetchone()
+        
+        cursor.close()
+        return results
+        
+    except Exception as e:
+        print(f"Query execution error: {e}")
+        raise e
+    finally:
+        if conn:
+            return_db_connection(conn)
 
 def convert_excel_date_to_readable(date_value):
     """Convert Excel date number or string date to readable format"""
@@ -98,68 +168,73 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         # Build base query with filters
         base_where = 'WHERE "ID" >= 8000'
         
-        # Add date filter if specified (using the actual "Dates" column)
+        # Add date filter if specified (using the actual "Dates" column format)
         if start_date and end_date:
-            base_where += f' AND "Dates" >= \'{start_date}\' AND "Dates" <= \'{end_date}\''
-        
-        # Get summary from all inventory tables - using same logic as inventory API
-        query = f"""
-        SELECT 
-            'Accountancy Age' as brand,
-            COUNT(DISTINCT inv."ID") as total_slots,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" ILIKE '%booked%' THEN inv."ID" END) as booked,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" ILIKE '%not booked%' THEN inv."ID" END) as available,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" ILIKE '%hold%' THEN inv."ID" END) as on_hold,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IS NULL OR inv."Booked/Not Booked" NOT ILIKE '%booked%' AND inv."Booked/Not Booked" NOT ILIKE '%not booked%' AND inv."Booked/Not Booked" NOT ILIKE '%hold%' THEN inv."ID" END) as unclassified
-        FROM campaign_metadata.aa_inventory inv
-        LEFT JOIN campaign_metadata.campaign_ledger cl 
-            ON inv."Booking ID" = cl."Booking ID" 
-            AND cl."Brand" = 'AA'
-        {base_where.replace('"ID"', 'inv."ID"')}
-        """
-        
-        # Execute queries for each brand
-        brands_data = []
-        brand_tables = [
-            ('Accountancy Age', 'aa_inventory', 'AA'),
-            ('Bobsguide', 'bob_inventory', 'BG'),
-            ('The CFO', 'cfo_inventory', 'CFO'),
-            ('Global Treasurer', 'gt_inventory', 'GT'),
-            ('HRD Connect', 'hrd_inventory', 'HRD'),
-            ('ClickZ', 'cz_inventory', 'CZ')
-        ]
-        
-        for brand_name, table_name, brand_code in brand_tables:
-            # Skip if brand filter is specified and doesn't match
-            if brand_filter and brand_filter != brand_name:
-                continue
-                
             try:
-                brand_query = query.replace('aa_inventory', table_name).replace('AA', brand_code)
-                cursor.execute(brand_query)
-                brand_data = cursor.fetchone()
+                from datetime import datetime, timedelta
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                end_dt = end_dt + timedelta(days=1)
                 
-                if brand_data:
-                    # For pg8000, data comes as tuple: (brand, total_slots, booked, available, on_hold, unclassified)
-                    available_with_unclassified = brand_data[3] + brand_data[5]
-                    brands_data.append({
-                        'brand': brand_name,
-                        'total_slots': brand_data[1],
-                        'booked': brand_data[2],
-                        'available': available_with_unclassified,
-                        'on_hold': brand_data[4],
-                        'unclassified': brand_data[5]
-                    })
+                # Generate all dates in the range in the database format
+                date_conditions = []
+                current_date = start_dt
+                while current_date < end_dt:
+                    formatted_date = current_date.strftime('%A, %B %d, %Y')
+                    date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                    current_date += timedelta(days=1)
+                
+                if date_conditions:
+                    base_where += f" AND ({' OR '.join(date_conditions)})"
             except Exception as e:
-                print(f"Error querying {table_name}: {e}")
-                # Add empty data for this brand if query fails
+                print(f"Error in date filtering for summary: {e}")
+        
+        # Get summary from all inventory tables - using correct business logic
+        # Query all brand tables individually and combine results
+        brands_data = []
+        
+        # Define all brand tables
+        brand_tables = {
+            'AA': 'aa_inventory',
+            'BG': 'bob_inventory', 
+            'CFO': 'cfo_inventory',
+            'GT': 'gt_inventory',
+            'HRD': 'hrd_inventory',
+            'CZ': 'cz_inventory'
+        }
+        
+        for brand_code, table_name in brand_tables.items():
+            query = f"""
+            SELECT 
+                '{brand_code}' as brand,
+                COUNT(DISTINCT inv."ID") as total_slots,
+                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
+                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
+                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold', 'On hold ') THEN inv."ID" END) as on_hold
+            FROM campaign_metadata.{table_name} inv
+            {base_where}
+            """
+            
+            cursor.execute(query)
+            result = cursor.fetchone()
+            
+            if result:
+                total_slots = result[1] or 0
+                booked = result[2] or 0
+                available = result[3] or 0
+                on_hold = result[4] or 0
+                
+                # Calculate percentage
+                percentage = (booked / total_slots * 100) if total_slots > 0 else 0
+                
                 brands_data.append({
-                    'brand': brand_name,
-                    'total_slots': 0,
-                    'booked': 0,
-                    'available': 0,
-                    'on_hold': 0,
-                    'unclassified': 0
+                    'brand': brand_code,
+                    'name': brand_code,  # Use brand code as name for now
+                    'total_slots': total_slots,
+                    'booked': booked,
+                    'available': available,
+                    'on_hold': on_hold,
+                    'percentage': round(percentage, 2)
                 })
         
         return brands_data
@@ -188,7 +263,7 @@ def get_inventory_by_product_and_brand():
                     'booked': brand_data['booked'],
                     'available': brand_data['available'],
                     'on_hold': brand_data['on_hold'],
-                    'unclassified': brand_data['unclassified']
+                    'unclassified': 0  # Set to 0 since this field doesn't exist in the data
                 })
         
         return processed_results
@@ -297,45 +372,33 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
             if start_date and end_date:
                 print(f"Filtering by date range: {start_date} to {end_date}")
                 
-                # Database stores dates as YYYY-MM-DD HH:MM:SS format
+                # Database stores dates as "Monday, January 06, 2025" format
                 # Convert to proper date range filter
                 try:
-                    from datetime import datetime
+                    from datetime import datetime, timedelta
                     start_dt = datetime.strptime(start_date, '%Y-%m-%d')
                     end_dt = datetime.strptime(end_date, '%Y-%m-%d')
                     
                     # Add one day to end_date to include the full day
-                    from datetime import timedelta
                     end_dt = end_dt + timedelta(days=1)
                     
-                    # Format for database query
-                    start_str = start_dt.strftime('%Y-%m-%d')
-                    end_str = end_dt.strftime('%Y-%m-%d')
+                    # Generate all dates in the range in the database format
+                    date_conditions = []
+                    current_date = start_dt
+                    while current_date < end_dt:
+                        # Format as "Monday, January 06, 2025"
+                        formatted_date = current_date.strftime('%A, %B %d, %Y')
+                        date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                        current_date += timedelta(days=1)
                     
-                    query += f" AND \"Dates\" >= '{start_str}' AND \"Dates\" < '{end_str}'"
-                    print(f"Added date filter: Dates >= '{start_str}' AND Dates < '{end_str}'")
+                    if date_conditions:
+                        query += f" AND ({' OR '.join(date_conditions)})"
+                        print(f"Added date filter with {len(date_conditions)} date conditions")
                     
                 except Exception as e:
                     print(f"Error in date filtering: {e}")
-                    # Fallback to original hardcoded conditions for known ranges
-                    if start_date == '2025-08-25' and end_date == '2025-08-29':
-                        date_conditions = [
-                            '"Dates" = \'Monday, August 25, 2025\'',
-                            '"Dates" = \'Tuesday, August 26, 2025\'',
-                            '"Dates" = \'Wednesday, August 27, 2025\'',
-                            '"Dates" = \'Thursday, August 28, 2025\'',
-                            '"Dates" = \'Friday, August 29, 2025\''
-                        ]
-                        query += f" AND ({' OR '.join(date_conditions)})"
-                    elif start_date == '2025-08-18' and end_date == '2025-08-22':
-                        date_conditions = [
-                            '"Dates" = \'Monday, August 18, 2025\'',
-                            '"Dates" = \'Tuesday, August 19, 2025\'',
-                            '"Dates" = \'Wednesday, August 20, 2025\'',
-                            '"Dates" = \'Thursday, August 21, 2025\'',
-                            '"Dates" = \'Friday, August 22, 2025\''
-                        ]
-                        query += f" AND ({' OR '.join(date_conditions)})"
+                    # Fallback: remove date filter to show all data
+                    print("Falling back to no date filter")
             
             # Add product filter if specified
             if product_filter:
@@ -471,28 +534,14 @@ def get_upcoming_deliverables():
 
 @app.route('/')
 def dashboard():
-    """Main dashboard page"""
+    """Main dashboard route - serve the enhanced dashboard"""
     try:
-        # Use the new function that breaks down by product and brand by default
-        inventory_summary = get_inventory_by_product_and_brand()
-        upcoming_deliverables = get_upcoming_deliverables()
-        
-        # Calculate totals
-        total_slots = sum(item['total_slots'] for item in inventory_summary)
-        total_booked = sum(item['booked'] for item in inventory_summary)
-        total_available = sum(item['available'] for item in inventory_summary)
-        total_on_hold = sum(item['on_hold'] for item in inventory_summary)
-        
-        return render_template_string(HTML_TEMPLATE, 
-                                    inventory_summary=inventory_summary,
-                                    upcoming_deliverables=upcoming_deliverables,
-                                    total_slots=total_slots,
-                                    total_booked=total_booked,
-                                    total_available=total_available,
-                                    total_on_hold=total_on_hold,
-                                    datetime=datetime)
+        # Serve the enhanced dashboard HTML file
+        with open('index.html', 'r') as f:
+            return f.read()
     except Exception as e:
-        return f"Error: {str(e)}", 500
+        print(f"Error serving dashboard: {e}")
+        return f"Error loading dashboard: {str(e)}", 500
 
 @app.route('/api/inventory')
 def api_inventory():
@@ -729,7 +778,8 @@ def api_weekly_comparison():
             "Client Name",
             "Scheduled Live Date",
             "Status",
-            "Contract ID"
+            "Contract ID",
+            "Booking ID"
         FROM campaign_metadata.campaign_ledger
         WHERE "Scheduled Live Date" >= %s AND "Scheduled Live Date" <= %s
         """
@@ -745,7 +795,8 @@ def api_weekly_comparison():
                 'client_name': row[1],
                 'scheduled_live_date': row[2].isoformat() if row[2] else None,
                 'status': row[3],
-                'contract_id': row[4]
+                'contract_id': row[4],
+                'booking_id': row[5]
             })
         
         cursor.close()
@@ -789,12 +840,18 @@ def api_weekly_comparison():
         scheduled_by_brand = {}
         form_by_brand = {}
         
-        # Count scheduled campaigns
+        # Count unique scheduled campaigns by booking ID (source of truth)
+        unique_booking_ids = set()
         for campaign in scheduled_campaigns:
             brand = campaign.get('brand', 'Unknown')
-            if brand not in scheduled_by_brand:
-                scheduled_by_brand[brand] = 0
-            scheduled_by_brand[brand] += 1
+            booking_id = campaign.get('booking_id', '')  # Using booking_id field
+            if booking_id and booking_id != 'N/A':
+                unique_key = f"{brand}_{booking_id}"
+                if unique_key not in unique_booking_ids:
+                    unique_booking_ids.add(unique_key)
+                    if brand not in scheduled_by_brand:
+                        scheduled_by_brand[brand] = 0
+                    scheduled_by_brand[brand] += 1
         
         # Count form submissions
         for item in form_submissions:
@@ -945,6 +1002,114 @@ def api_clients():
         print(f"Clients API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/weekly-overview')
+def api_weekly_overview():
+    """API endpoint for weekly overview data"""
+    try:
+        # Get current week's data
+        from datetime import datetime, timedelta
+        
+        # Use January 6-12, 2025 as our sample week (where we have data)
+        week_start = datetime(2025, 1, 6)  # Monday, January 6, 2025
+        week_end = datetime(2025, 1, 12)   # Sunday, January 12, 2025
+        
+        # Format dates for the query (using the same format as the inventory API)
+        start_date_str = '2025-01-06'
+        end_date_str = '2025-01-12'
+        
+        # Get data for current week using the inventory API function
+        # We'll use the same logic as the inventory API endpoint
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        try:
+            # Get data from all brand tables for the week
+            all_brands = ['aa_inventory', 'bob_inventory', 'cfo_inventory', 'gt_inventory', 'hrd_inventory', 'cz_inventory']
+            weekly_data = []
+            
+            for table in all_brands:
+                brand_code = table.split('_')[0].upper()
+                if brand_code == 'BOB':
+                    brand_code = 'BG'
+                
+                query = f"""
+                SELECT DISTINCT ON (inv."ID")
+                    inv."ID" as slot_id,
+                    inv."Dates" as slot_date,
+                    inv."Booked/Not Booked" as status,
+                    inv."Booking ID" as booking_id,
+                    inv."Media_Asset" as product,
+                    '{brand_code}' as brand,
+                    COALESCE(cl."Client Name", 'No Client') as client_name,
+                    COALESCE(cl."Contract ID", 'N/A') as contract_id
+                FROM campaign_metadata.{table} inv
+                LEFT JOIN campaign_metadata.campaign_ledger cl 
+                    ON inv."Booking ID" = cl."Booking ID" 
+                    AND cl."Brand" = '{brand_code}'
+                WHERE inv."ID" >= 8000
+                 AND ("Dates" = 'Monday, January 06, 2025' OR "Dates" = 'Tuesday, January 07, 2025' OR "Dates" = 'Wednesday, January 08, 2025' OR "Dates" = 'Thursday, January 09, 2025' OR "Dates" = 'Friday, January 10, 2025' OR "Dates" = 'Saturday, January 11, 2025' OR "Dates" = 'Sunday, January 12, 2025')
+                ORDER BY inv."ID", 
+                    CASE 
+                        WHEN inv."Booked/Not Booked" = 'Booked' THEN 1
+                        WHEN inv."Booked/Not Booked" = 'Hold' THEN 2
+                        WHEN inv."Booked/Not Booked" = 'Hold ' THEN 2
+                        WHEN inv."Booked/Not Booked" = 'hold' THEN 2
+                        WHEN inv."Booked/Not Booked" = 'On hold' THEN 2
+                        ELSE 3
+                    END, inv."Dates" DESC
+                """
+                
+                cursor.execute(query)
+                results = cursor.fetchall()
+                
+                for row in results:
+                    weekly_data.append({
+                        'slot_id': row[0],
+                        'slot_date': row[1],
+                        'status': row[2],
+                        'booking_id': row[3],
+                        'product': row[4],
+                        'brand': row[5],
+                        'client_name': row[6],
+                        'contract_id': row[7]
+                    })
+            
+        finally:
+            cursor.close()
+            conn.close()
+        
+        # Process data by day
+        days_data = {}
+        for item in weekly_data:
+            date = item['slot_date']
+            if date not in days_data:
+                days_data[date] = {'total': 0, 'booked': 0, 'available': 0, 'on_hold': 0}
+            
+            days_data[date]['total'] += 1
+            if item['status'].lower() == 'booked':
+                days_data[date]['booked'] += 1
+            elif 'hold' in item['status'].lower():
+                days_data[date]['on_hold'] += 1
+            else:
+                days_data[date]['available'] += 1
+        
+        # Convert to array format
+        result = []
+        for date, data in days_data.items():
+            result.append({
+                'date': date,
+                'total': data['total'],
+                'booked': data['booked'],
+                'available': data['available'],
+                'on_hold': data['on_hold'],
+                'percentage': round((data['booked'] / data['total'] * 100) if data['total'] > 0 else 0, 2)
+            })
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error in weekly overview API: {e}")
+        return jsonify([]), 500
+
 # HTML Template for the dashboard
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -965,62 +1130,30 @@ HTML_TEMPLATE = """
             <p class="text-sm text-gray-500 mt-2">Last updated: {{ datetime.now().strftime('%Y-%m-%d %H:%M:%S') }}</p>
         </header>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-blue-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Total Slots</p>
-                        <p class="text-2xl font-bold text-white">{{ total_slots }}</p>
-                    </div>
-                </div>
-            </div>
 
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-green-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Booked</p>
-                        <p class="text-2xl font-bold text-green-400">{{ total_booked }}</p>
-                    </div>
-                </div>
+        <!-- Brand Overview Section -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Brand Overview
+            </h3>
+            <div id="brandOverview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="text-center text-gray-400">Loading brand data...</div>
             </div>
+        </div>
 
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-yellow-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">On Hold</p>
-                        <p class="text-2xl font-bold text-yellow-400">{{ total_on_hold }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-gray-500 bg-opacity-20">
-                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-gray-400 text-sm">Available</p>
-                        <p class="text-2xl font-bold text-gray-400">{{ total_available }}</p>
-                    </div>
-                </div>
+        <!-- Weekly Overview Section -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                Weekly Overview
+            </h3>
+            <div id="weeklyOverview" class="grid grid-cols-1 md:grid-cols-7 gap-4">
+                <div class="text-center text-gray-400">Loading weekly data...</div>
             </div>
         </div>
 
@@ -1033,9 +1166,20 @@ HTML_TEMPLATE = """
                     <label class="block text-sm font-medium text-gray-400 mb-2">Product</label>
                     <select id="productFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">All Products</option>
-                        <option value="BM-S2-Newsletter Sponsorship">Newsletter Sponsorship</option>
-                        <option value="MailShot">Mailshot</option>
-                        <option value="LB-1-Live Broadcast">Live Broadcast</option>
+                        <option value="Newsletter_Sponsorship">Newsletter Sponsorship</option>
+                        <option value="Original_Content_Production">Original Content Production</option>
+                        <option value="Press_Release">Press Release</option>
+                        <option value="Hosted_Content">Hosted Content</option>
+                        <option value="Newsletter_Featured_Placement">Newsletter Featured Placement</option>
+                        <option value="Newsletter_Category_Sponsorship">Newsletter Category Sponsorship</option>
+                        <option value="Weekender_Newsletter_Sponsorship">Weekender Newsletter Sponsorship</option>
+                        <option value="Mailshot">Mailshot</option>
+                        <option value="Leading_Voice_Broadcast">Leading Voice Broadcast</option>
+                        <option value="Original_Content_Newsletter_Feature_Placement">Original Content Newsletter Feature</option>
+                        <option value="LinkedIn_Social_Media_Post">LinkedIn Social Media Post</option>
+                        <option value="Press_Release_Promotion_Placement">Press Release Promotion</option>
+                        <option value="NIAB_Event_Coverage">NIAB Event Coverage</option>
+                        <option value="LinkedIn_Sponsor_Placement">LinkedIn Sponsor Placement</option>
                     </select>
                 </div>
                 
@@ -1061,11 +1205,38 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
                 
-                <!-- Search Button -->
-                <div class="flex items-end">
+                <!-- Client Filter -->
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Client</label>
+                    <div class="relative">
+                        <input type="text" id="clientFilter" placeholder="Type to search clients..." class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                        <div id="clientDropdown" class="absolute z-10 w-full bg-gray-700 border border-gray-600 rounded-lg mt-1 max-h-60 overflow-y-auto hidden">
+                            <!-- Client options will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Status</label>
+                    <select id="statusFilter" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Status</option>
+                        <option value="Booked">Booked</option>
+                        <option value="Not Booked">Available</option>
+                        <option value="Hold">On Hold</option>
+                    </select>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-end space-x-2">
                     <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </button>
+                    <button onclick="resetFilters()" class="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-lg font-medium transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
                     </button>
                 </div>
@@ -1136,6 +1307,8 @@ HTML_TEMPLATE = """
             const brand = document.getElementById('brandFilter').value;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            const client = document.getElementById('clientFilter').value;
+            const status = document.getElementById('statusFilter').value;
             
             // Build query parameters
             const params = new URLSearchParams();
@@ -1143,24 +1316,194 @@ HTML_TEMPLATE = """
             if (brand) params.append('brand', brand);
             if (startDate) params.append('start_date', startDate);
             if (endDate) params.append('end_date', endDate);
+            if (client) params.append('client', client);
+            if (status) params.append('status', status);
             
-                         // Fetch filtered data
-             fetch(`/api/inventory?${params.toString()}`)
-                 .then(response => response.json())
-                 .then(data => {
-                     updateFilteredResultsTable(data);
-                 })
-                 .catch(error => console.log('Filter error:', error));
+            // Show loading state
+            const tbody = document.getElementById('filteredResultsTable');
+            tbody.innerHTML = `
+                <tr class="border-b border-gray-700">
+                    <td class="py-2 text-center text-gray-500" colspan="6">Loading filtered results...</td>
+                </tr>
+            `;
+            
+            // Fetch filtered data
+            fetch(`/api/inventory?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateFilteredResultsTable(data);
+                })
+                .catch(error => {
+                    console.log('Filter error:', error);
+                    tbody.innerHTML = `
+                        <tr class="border-b border-gray-700">
+                            <td class="py-2 text-center text-red-500" colspan="6">Error loading data. Please try again.</td>
+                        </tr>
+                    `;
+                });
         }
         
-                 function resetFilters() {
-             document.getElementById('productFilter').value = '';
-             document.getElementById('brandFilter').value = '';
-             document.getElementById('startDate').value = '';
-             document.getElementById('endDate').value = '';
-             // Clear the results table
-             updateFilteredResultsTable([]);
-         }
+        function resetFilters() {
+            document.getElementById('productFilter').value = '';
+            document.getElementById('brandFilter').value = '';
+            document.getElementById('startDate').value = '2025-01-06';
+            document.getElementById('endDate').value = '2025-01-20';
+            document.getElementById('clientFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            // Clear the results table
+            updateFilteredResultsTable([]);
+        }
+        
+        // Load client data for filter
+        let allClients = [];
+        
+        function loadClients() {
+            fetch('/api/clients')
+                .then(response => response.json())
+                .then(data => {
+                    allClients = data.map(client => client.client_name);
+                    setupClientSearch();
+                })
+                .catch(error => console.log('Error loading clients:', error));
+        }
+        
+        function setupClientSearch() {
+            const clientInput = document.getElementById('clientFilter');
+            const clientDropdown = document.getElementById('clientDropdown');
+            
+            clientInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const filteredClients = allClients.filter(client => 
+                    client.toLowerCase().includes(searchTerm)
+                );
+                
+                clientDropdown.innerHTML = '';
+                
+                if (searchTerm.length > 0 && filteredClients.length > 0) {
+                    filteredClients.forEach(client => {
+                        const option = document.createElement('div');
+                        option.className = 'px-3 py-2 hover:bg-gray-600 cursor-pointer text-white';
+                        option.textContent = client;
+                        option.addEventListener('click', function() {
+                            clientInput.value = client;
+                            clientDropdown.classList.add('hidden');
+                        });
+                        clientDropdown.appendChild(option);
+                    });
+                    clientDropdown.classList.remove('hidden');
+                } else {
+                    clientDropdown.classList.add('hidden');
+                }
+            });
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!clientInput.contains(e.target) && !clientDropdown.contains(e.target)) {
+                    clientDropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        // Load brand overview data
+        function loadBrandOverview() {
+            fetch('/api/brand-overview')
+                .then(response => response.json())
+                .then(data => {
+                    const brandOverview = document.getElementById('brandOverview');
+                    brandOverview.innerHTML = '';
+                    
+                    data.forEach(brand => {
+                        const brandCard = document.createElement('div');
+                        brandCard.className = 'bg-gray-700 rounded-lg p-4 border border-gray-600';
+                        brandCard.innerHTML = `
+                            <div class="text-center">
+                                <h4 class="text-lg font-bold text-white mb-2">${brand.name}</h4>
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                        <p class="text-gray-400">Total</p>
+                                        <p class="text-white font-bold">${brand.total_slots}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-400">Booked</p>
+                                        <p class="text-green-400 font-bold">${brand.booked}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-400">Available</p>
+                                        <p class="text-blue-400 font-bold">${brand.available}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-400">On Hold</p>
+                                        <p class="text-yellow-400 font-bold">${brand.on_hold}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="w-full bg-gray-600 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full" style="width: ${brand.percentage}%"></div>
+                                    </div>
+                                    <p class="text-xs text-gray-400 mt-1">${brand.percentage}% booked</p>
+                                </div>
+                            </div>
+                        `;
+                        brandOverview.appendChild(brandCard);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading brand overview:', error);
+                    document.getElementById('brandOverview').innerHTML = '<div class="text-center text-red-400">Error loading brand data</div>';
+                });
+        }
+
+        // Load weekly overview data
+        function loadWeeklyOverview() {
+            fetch('/api/weekly-overview')
+                .then(response => response.json())
+                .then(data => {
+                    const weeklyOverview = document.getElementById('weeklyOverview');
+                    weeklyOverview.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        weeklyOverview.innerHTML = '<div class="text-center text-gray-400 col-span-7">No data available for current week</div>';
+                        return;
+                    }
+                    
+                    data.forEach(day => {
+                        const dayCard = document.createElement('div');
+                        dayCard.className = 'bg-gray-700 rounded-lg p-3 border border-gray-600 text-center';
+                        dayCard.innerHTML = `
+                            <h4 class="text-sm font-bold text-white mb-2">${day.date.split(',')[0]}</h4>
+                            <div class="space-y-1 text-xs">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Total:</span>
+                                    <span class="text-white font-bold">${day.total}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Booked:</span>
+                                    <span class="text-green-400 font-bold">${day.booked}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Available:</span>
+                                    <span class="text-blue-400 font-bold">${day.available}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">On Hold:</span>
+                                    <span class="text-yellow-400 font-bold">${day.on_hold}</span>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <div class="w-full bg-gray-600 rounded-full h-1">
+                                    <div class="bg-green-500 h-1 rounded-full" style="width: ${day.percentage}%"></div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">${day.percentage}%</p>
+                            </div>
+                        `;
+                        weeklyOverview.appendChild(dayCard);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading weekly overview:', error);
+                    document.getElementById('weeklyOverview').innerHTML = '<div class="text-center text-red-400 col-span-7">Error loading weekly data</div>';
+                });
+        }
         
                           function updateFilteredResultsTable(data) {
             const tbody = document.getElementById('filteredResultsTable');
@@ -1211,13 +1554,23 @@ HTML_TEMPLATE = """
             });
         }
         
-        // Set default date range to next 2 weeks
+        // Set default date range to January 2025 (where we have data)
         window.addEventListener('load', function() {
-            const today = new Date();
-            const twoWeeksLater = new Date(today.getTime() + (14 * 24 * 60 * 60 * 1000));
+            // Set to January 6-20, 2025 where we have actual data
+            document.getElementById('startDate').value = '2025-01-06';
+            document.getElementById('endDate').value = '2025-01-20';
             
-            document.getElementById('startDate').value = today.toISOString().split('T')[0];
-            document.getElementById('endDate').value = twoWeeksLater.toISOString().split('T')[0];
+            // Load clients for filter
+            loadClients();
+            
+            // Load brand overview
+            loadBrandOverview();
+            
+            // Load weekly overview
+            loadWeeklyOverview();
+            
+            // Load data immediately with the default range
+            applyFilters();
         });
     </script>
 </body>
@@ -1226,5 +1579,5 @@ HTML_TEMPLATE = """
 
 if __name__ == '__main__':
     # Force redeploy - updated to ensure latest endpoints are available - v4
-    port = int(os.getenv('PORT', 5002))
+    port = int(os.getenv('PORT', 5005))
     app.run(debug=True, port=port)
