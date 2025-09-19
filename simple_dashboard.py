@@ -7,13 +7,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Import psycopg for PostgreSQL connection
+# Import psycopg2 for PostgreSQL connection
 try:
-    import psycopg
+    import psycopg2
     PSYCOPG_AVAILABLE = True
-    print("Using psycopg for PostgreSQL connection")
+    print("Using psycopg2 for PostgreSQL connection")
 except ImportError as e:
-    print(f"Error: psycopg not available: {e}")
+    print(f"Error: psycopg2 not available: {e}")
     PSYCOPG_AVAILABLE = False
 
 app = Flask(__name__)
@@ -23,7 +23,7 @@ CORS(app)  # Enable CORS for all routes
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'contentive-warehouse-instance-1.cq8sion7djdk.eu-west-2.rds.amazonaws.com'),
     'port': int(os.getenv('DB_PORT', 5432)),
-    'dbname': os.getenv('DB_NAME', 'analytics'),  # Changed from 'database' to 'dbname' for psycopg
+    'database': os.getenv('DB_NAME', 'analytics'),  # psycopg2 uses 'database' not 'dbname'
     'user': os.getenv('DB_USER', 'kunj.chacha@contentive.com'),
     'password': os.getenv('DB_PASSWORD', '(iRFw989b{5h')
 }
@@ -70,19 +70,19 @@ def get_db_connection():
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1")
                 cursor.close()
-                return conn
+            return conn
             except:
                 # Connection is dead, create new one
                 pass
 
-        # Create new connection
-        try:
-            conn = psycopg.connect(**DB_CONFIG)
-            print("Database connection successful with psycopg!")
-            return conn
-        except Exception as e:
-            print(f"Database connection error: {e}")
-            raise e
+                # Create new connection
+                try:
+                    conn = psycopg2.connect(**DB_CONFIG)
+                    print("Database connection successful with psycopg2!")
+                    return conn
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        raise e
 
 def return_db_connection(conn):
     """Return connection to pool for reuse"""
@@ -204,7 +204,7 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         }
         
         for brand_code, table_name in brand_tables.items():
-            query = f"""
+        query = f"""
         SELECT 
                 '{brand_code}' as brand,
             COUNT(DISTINCT inv."ID") as total_slots,
@@ -227,7 +227,7 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
                 # Calculate percentage
                 percentage = (booked / total_slots * 100) if total_slots > 0 else 0
 
-            brands_data.append({
+                    brands_data.append({
                 'brand': brand_code,
                 'name': brand_code,  # Use brand code as name for now
                 'total_slots': total_slots,
@@ -388,7 +388,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     while current_date < end_dt:
                         # Format as "Monday, January 06, 2025"
                         formatted_date = current_date.strftime('%A, %B %d, %Y')
-                        date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
                         current_date += timedelta(days=1)
                     
                     if date_conditions:
@@ -1058,10 +1058,10 @@ def api_weekly_overview():
                     END, inv."Dates" DESC
         """
         
-            cursor.execute(query)
-            results = cursor.fetchall()
+        cursor.execute(query)
+        results = cursor.fetchall()
         
-            for row in results:
+        for row in results:
                 weekly_data.append({
                     'slot_id': row[0],
                     'slot_date': row[1],
@@ -1074,8 +1074,8 @@ def api_weekly_overview():
                 })
             
         finally:
-            cursor.close()
-            conn.close()
+        cursor.close()
+        conn.close()
         
         # Process data by day
         days_data = {}
