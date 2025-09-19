@@ -77,7 +77,7 @@ def get_db_connection():
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1")
                 cursor.close()
-            return conn
+                return conn
             except Exception as e:
                 # Connection is dead, create new one
                 print(f"Connection test failed: {e}")
@@ -88,8 +88,8 @@ def get_db_connection():
             conn = psycopg2.connect(**DB_CONFIG)
             print("Database connection successful with psycopg2!")
             return conn
-    except Exception as e:
-        print(f"Database connection error: {e}")
+        except Exception as e:
+            print(f"Database connection error: {e}")
         raise e
 
 def return_db_connection(conn):
