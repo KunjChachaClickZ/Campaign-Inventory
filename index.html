@@ -721,14 +721,22 @@
         }
 
         async function fetchWeeklyComparison(weekOffset = 0) {
+            const weekRange = getWeekRange(weekOffset);
+            
             try {
-                const weekRange = getWeekRange(weekOffset);
-
+                console.log('Fetching weekly comparison for:', weekRange);
+                
                 // Add timeout for weekly view
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                const timeoutId = setTimeout(() => {
+                    console.log('Weekly comparison request timed out');
+                    controller.abort();
+                }, 10000); // 10 second timeout
                 
-                const response = await fetch(`${API_BASE}/weekly-comparison?start_date=${weekRange.startDate}&end_date=${weekRange.endDate}`, {
+                const url = `${API_BASE}/weekly-comparison?start_date=${weekRange.startDate}&end_date=${weekRange.endDate}`;
+                console.log('Weekly comparison URL:', url);
+                
+                const response = await fetch(url, {
                     signal: controller.signal
                 });
                 
