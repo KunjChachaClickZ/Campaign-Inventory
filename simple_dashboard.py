@@ -781,7 +781,9 @@ def api_weekly_comparison():
         import requests
 
         # Get inventory data for the date range
-        inventory_url = f"http://localhost:5005/api/inventory?start_date={start_date}&end_date={end_date}&limit=10000"
+        # Use the production URL when deployed, localhost for development
+        base_url = os.getenv('RENDER_EXTERNAL_URL', 'http://localhost:5005')
+        inventory_url = f"{base_url}/api/inventory?start_date={start_date}&end_date={end_date}&limit=10000"
         try:
             inventory_response = requests.get(inventory_url, timeout=30)
             if inventory_response.status_code == 200:
