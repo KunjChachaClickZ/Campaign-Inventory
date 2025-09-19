@@ -77,7 +77,7 @@ def get_db_connection():
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1")
                 cursor.close()
-                return conn
+            return conn
             except Exception as e:
                 # Connection is dead, create new one
                 print(f"Connection test failed: {e}")
@@ -88,9 +88,9 @@ def get_db_connection():
             conn = psycopg2.connect(**DB_CONFIG)
             print("Database connection successful with psycopg2!")
             return conn
-        except Exception as e:
-            print(f"Database connection error: {e}")
-            raise e
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        raise e
 
 def return_db_connection(conn):
     """Return connection to pool for reuse"""
@@ -212,12 +212,12 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         }
         
         for brand_code, table_name in brand_tables.items():
-            query = f"""
-            SELECT
+        query = f"""
+        SELECT 
                         '{brand_code}' as brand,
-                COUNT(DISTINCT inv."ID") as total_slots,
-                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
-                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
+            COUNT(DISTINCT inv."ID") as total_slots,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
                         COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold', 'On hold ') THEN inv."ID" END) as on_hold
                     FROM campaign_metadata.{table_name} inv
                     {base_where}
@@ -235,7 +235,7 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
                 # Calculate percentage
                 percentage = (booked / total_slots * 100) if total_slots > 0 else 0
 
-                brands_data.append({
+                    brands_data.append({
                     'brand': brand_code,
                     'name': brand_code,  # Use brand code as name for now
                     'total_slots': total_slots,
@@ -396,7 +396,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     while current_date < end_dt:
                         # Format as "Monday, January 06, 2025"
                         formatted_date = current_date.strftime('%A, %B %d, %Y')
-                        date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
                         current_date += timedelta(days=1)
                     
                     if date_conditions:
@@ -776,40 +776,79 @@ def api_weekly_comparison():
         if not start_date or not end_date:
             return jsonify({"error": "start_date and end_date parameters are required"}), 400
         
-        # Use the existing inventory API to get booked slots with booking IDs
-        # This is simpler and more reliable than creating complex UNION queries
-        import requests
-
-        # Get inventory data for the date range
-        # Use the production URL when deployed, localhost for development
-        base_url = os.getenv('RENDER_EXTERNAL_URL', 'http://localhost:5005')
-        inventory_url = f"{base_url}/api/inventory?start_date={start_date}&end_date={end_date}&limit=10000"
-        try:
-            inventory_response = requests.get(inventory_url, timeout=30)
-            if inventory_response.status_code == 200:
-                all_inventory = inventory_response.json()
-                # Filter for only booked/scheduled slots with valid booking IDs
-                inventory_bookings = []
-                for item in all_inventory:
-                    # Include Booked, Hold, hold, On hold as "scheduled"
-                    status = item.get('status', '').strip().lower()
-                    is_scheduled = (status == 'booked' or
-                                   'hold' in status or
-                                   'on hold' in status)
-
-                    if (is_scheduled and
-                        item.get('booking_id') and
-                        item.get('booking_id') not in ['', 'N/A', None]):
-                        inventory_bookings.append({
-                            'booking_id': item['booking_id'],
-                            'brand': item['brand'],
-                            'client_name': item.get('client_name', 'No Client'),
-                            'slot_date': item['slot_date']
-                        })
-            else:
-                inventory_bookings = []
-        except:
-            inventory_bookings = []
+        # Convert dates to the format used in the database
+        from datetime import datetime
+        
+        # Parse the input dates
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        
+        # Convert to the format used in the database (e.g., "Monday, September 22, 2025")
+        def format_date_for_db(date_obj):
+            return date_obj.strftime('%A, %B %d, %Y')
+        
+        # Generate all dates in the range
+        date_conditions = []
+        current_date = start_dt
+        while current_date <= end_dt:
+            formatted_date = format_date_for_db(current_date)
+            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+            current_date = current_date.replace(day=current_date.day + 1)
+        
+        date_where_clause = ' OR '.join(date_conditions)
+        
+        # Get inventory data directly from database
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Query all brand tables for scheduled slots
+        all_brands = ['aa_inventory', 'bob_inventory', 'cfo_inventory', 'gt_inventory', 'hrd_inventory', 'cz_inventory']
+        inventory_bookings = []
+        
+        for table in all_brands:
+            brand_code = table.split('_')[0].upper()
+            if brand_code == 'BOB':
+                brand_code = 'BG'
+            
+            query = f"""
+            SELECT DISTINCT ON (inv."Booking ID")
+                inv."Booking ID" as booking_id,
+                '{brand_code}' as brand,
+                COALESCE(cl."Client Name", 'No Client') as client_name,
+                inv."Dates" as slot_date
+            FROM campaign_metadata.{table} inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                    AND cl."Brand" = '{brand_code}'
+            WHERE inv."ID" >= 8000
+                AND ({date_where_clause})
+                AND inv."Booking ID" IS NOT NULL 
+                AND inv."Booking ID" != ''
+                AND (inv."Booked/Not Booked" = 'Booked' 
+                     OR inv."Booked/Not Booked" = 'Hold' 
+                     OR inv."Booked/Not Booked" = 'Hold ' 
+                     OR inv."Booked/Not Booked" = 'hold' 
+                     OR inv."Booked/Not Booked" = 'On hold')
+            ORDER BY inv."Booking ID"
+            """
+            
+            try:
+                cursor.execute(query)
+                results = cursor.fetchall()
+                
+                for row in results:
+                    inventory_bookings.append({
+                        'booking_id': row[0],
+                        'brand': row[1],
+                        'client_name': row[2],
+                        'slot_date': row[3]
+                    })
+            except Exception as e:
+                print(f"Error querying {table}: {e}")
+                continue
+        
+        cursor.close()
+        conn.close()
         
         # Get form submissions data for the week
         conn = get_db_connection()
@@ -1067,11 +1106,11 @@ def api_weekly_overview():
                         ELSE 3
                     END, inv."Dates" DESC
         """
-
-            cursor.execute(query)
-            results = cursor.fetchall()
-
-            for row in results:
+        
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        for row in results:
                 weekly_data.append({
                     'slot_id': row[0],
                     'slot_date': row[1],
@@ -1087,8 +1126,8 @@ def api_weekly_overview():
             print(f"Error in weekly data query: {e}")
             return []
         finally:
-            cursor.close()
-            conn.close()
+        cursor.close()
+        conn.close()
         
         # Process data by day
         days_data = {}
