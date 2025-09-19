@@ -14,7 +14,14 @@ try:
     print("Using psycopg2 for PostgreSQL connection")
 except ImportError as e:
     print(f"Error: psycopg2 not available: {e}")
-    PSYCOPG_AVAILABLE = False
+    try:
+        # Fallback to psycopg2-binary
+        import psycopg2
+        PSYCOPG_AVAILABLE = True
+        print("Using psycopg2-binary as fallback")
+    except ImportError as e2:
+        print(f"Error: psycopg2-binary also not available: {e2}")
+        PSYCOPG_AVAILABLE = False
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -71,15 +78,16 @@ def get_db_connection():
                 cursor.execute("SELECT 1")
                 cursor.close()
             return conn
-            except:
-                # Connection is dead, create new one
-                pass
+        except Exception as e:
+            # Connection is dead, create new one
+            print(f"Connection test failed: {e}")
+            pass
 
-                # Create new connection
-                try:
-                    conn = psycopg2.connect(**DB_CONFIG)
-                    print("Database connection successful with psycopg2!")
-                    return conn
+        # Create new connection
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            print("Database connection successful with psycopg2!")
+            return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         raise e
