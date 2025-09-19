@@ -1138,9 +1138,9 @@
 
         // Product Breakdown Modal Functions
         const PRODUCT_BREAKDOWN_CONFIG = {
-            MIN_BOOKING_PERCENTAGE: 1, // Set the minimum booking percentage for products to be displayed
+            MIN_BOOKING_PERCENTAGE: 0, // Set the minimum booking percentage for products to be displayed (0 = show all)
             DISPLAY: {
-                SHOW_THRESHOLD_NOTE: true, // Whether to show the note about the threshold in the modal
+                SHOW_THRESHOLD_NOTE: false, // Whether to show the note about the threshold in the modal
             },
         };
 
@@ -1158,11 +1158,11 @@
             // Update modal title and show/hide brand selector
             if (brandName) {
                 modalTitle.textContent = `${brandName} - Product Breakdown`;
-                modalSubtitle.textContent = `Products with booking rates ≥ ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%`;
+                modalSubtitle.textContent = `All products for ${brandName}`;
                 brandSelector.classList.add('hidden');
             } else {
                 modalTitle.textContent = 'Product Breakdown - All Brands';
-                modalSubtitle.textContent = `Products with booking rates ≥ ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%`;
+                modalSubtitle.textContent = `All products across all brands`;
                 brandSelector.classList.remove('hidden');
             }
             
@@ -1317,8 +1317,8 @@
                 productsList.classList.add('hidden');
                 noProductsMessage.classList.remove('hidden');
                 noProductsMessage.innerHTML = `
-                    <div class="text-gray-400 text-lg mb-2">No products meet the ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% threshold</div>
-                    <div class="text-gray-500 text-sm">All products in ${brandName} have booking rates below ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%</div>
+                    <div class="text-gray-400 text-lg mb-2">No products found</div>
+                    <div class="text-gray-500 text-sm">No products available for ${brandName}</div>
                 `;
                 return;
             }
@@ -1329,7 +1329,7 @@
             productsList.innerHTML = `
                 <div class="mb-4">
                     <h4 class="text-lg font-semibold text-white mb-2">${brandName}</h4>
-                    <p class="text-sm text-gray-400 italic">Only products with booking rates greater than or equal to ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% are displayed to highlight high-performing inventory.</p>
+                    <p class="text-sm text-gray-400 italic">All products for ${brandName} with their booking performance.</p>
                 </div>
                 <div class="grid gap-4">
                     ${filteredProducts.map(([productName, data]) => `
@@ -1414,13 +1414,13 @@
                 noProductsMessage.classList.remove('hidden');
                 productsList.classList.add('hidden');
                 noProductsMessage.innerHTML = `
-                    <div class="text-gray-400 text-lg mb-2">No products meet the ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% threshold</div>
-                    <div class="text-gray-500 text-sm">All products across all brands have booking rates below ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}%</div>
+                    <div class="text-gray-400 text-lg mb-2">No products found</div>
+                    <div class="text-gray-500 text-sm">No products available across all brands</div>
                 `;
             } else {
                 productsList.innerHTML = `
                     <div class="mb-4">
-                        <p class="text-sm text-gray-400 italic">Only products with booking rates greater than or equal to ${PRODUCT_BREAKDOWN_CONFIG.MIN_BOOKING_PERCENTAGE}% are displayed to highlight high-performing inventory.</p>
+                        <p class="text-sm text-gray-400 italic">All products across all brands with their booking performance.</p>
                     </div>
                     ${allBrandsHtml}
                 `;
@@ -1506,8 +1506,8 @@
 
                     <!-- No Products Message -->
                     <div id="noProductsMessage" class="text-center py-8 hidden">
-                        <div class="text-gray-400 text-lg mb-2">No products meet the 7% threshold</div>
-                        <div class="text-gray-500 text-sm">All products in this brand have booking rates below 7%</div>
+                        <div class="text-gray-400 text-lg mb-2">No products found</div>
+                        <div class="text-gray-500 text-sm">No products available for this brand</div>
                     </div>
                 </div>
 
