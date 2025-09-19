@@ -396,7 +396,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     while current_date < end_dt:
                         # Format as "Monday, January 06, 2025"
                         formatted_date = current_date.strftime('%A, %B %d, %Y')
-                            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                        date_conditions.append(f'"Dates" = \'{formatted_date}\'')
                         current_date += timedelta(days=1)
                     
                     if date_conditions:
