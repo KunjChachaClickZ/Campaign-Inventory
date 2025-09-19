@@ -755,29 +755,11 @@
                 }
                 
                 const data = await response.json();
+                console.log('Weekly comparison API response:', data);
                 updateWeeklyView(data, weekRange);
             } catch (error) {
                 console.error('Error fetching weekly comparison:', error);
-                // Show mock data for testing when backend is not available
-                const weekRange = getWeekRange(weekOffset);
-                const mockData = {
-                    week_range: {
-                        start_date: weekRange.startDate,
-                        end_date: weekRange.endDate
-                    },
-                    summary: {
-                        total_scheduled: 13,
-                        total_form_submissions: 1
-                    },
-                    by_brand: {
-                        'AA': { scheduled: 3, form_submissions: 0 },
-                        'BG': { scheduled: 1, form_submissions: 0 },
-                        'CFO': { scheduled: 6, form_submissions: 0 },
-                        'GT': { scheduled: 1, form_submissions: 1 },
-                        'HRD': { scheduled: 2, form_submissions: 0 }
-                    }
-                };
-                updateWeeklyView(mockData, weekRange);
+                updateWeeklyViewError(weekRange);
             }
         }
 
