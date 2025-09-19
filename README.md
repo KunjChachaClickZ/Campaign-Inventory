@@ -1,28 +1,33 @@
-# Campaign Inventory Management System
+# 📊 Campaign Inventory Dashboard
 
-A powerful command-line tool for managing campaign inventory across multiple brands, built with Python and PostgreSQL.
+A modern web-based dashboard for real-time campaign inventory management across multiple media brands, built with Flask, PostgreSQL, and Tailwind CSS.
 
 ## 🚀 Features
 
-- **Real-time Inventory Tracking**: Monitor available, booked, and on-hold inventory slots across 6 brands
-- **Multi-Brand Support**: Accountancy Age (AA), Bobsguide (BG), The CFO (CFO), Global Treasurer (GT), HRD Connect (HRD), ClickZ (CZ)
-- **Advanced Filtering**: Filter by brand, product, date range, client, and status
-- **Data Export**: Export data to CSV or JSON formats
-- **Interactive Dashboard**: View key metrics and inventory summaries
-- **Connection Pooling**: Efficient database connection management
-- **Date Range Support**: Flexible date filtering with proper database format handling
+- **📈 Real-time Inventory Tracking**: Monitor available, booked, and on-hold inventory slots across 6 brands
+- **🏢 Multi-Brand Support**: Accountancy Age (AA), Bobsguide (BG), The CFO (CFO), Global Treasurer (GT), HRD Connect (HRD), ClickZ (CZ)
+- **🔍 Advanced Filtering**: Filter by brand, product, date range, client, and status
+- **📊 Interactive Dashboard**: View key metrics, brand performance, and inventory summaries
+- **🔗 API-First Architecture**: RESTful Flask API with CORS support
+- **📱 Responsive Design**: Modern UI with Tailwind CSS for all devices
+- **⚡ Connection Pooling**: Efficient PostgreSQL connection management with psycopg-binary
+- **📅 Smart Date Handling**: Automatic date conversion and range filtering
 
 ## 📋 Prerequisites
 
-- Python 3.9+
-- PostgreSQL database access
-- Required Python packages (see requirements.txt)
+- **Python 3.9+**
+- **PostgreSQL database** (AWS RDS)
+- **Web browser** (Chrome, Firefox, Safari, Edge)
+- **GitHub Pages** (for frontend hosting)
+- **Render.com account** (for backend hosting)
 
 ## 🛠️ Installation
 
+### Local Development
+
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/KunjChachaClickZ/Campaign-Inventory.git
    cd Campaign-Inventory
    ```
 
@@ -47,230 +52,192 @@ A powerful command-line tool for managing campaign inventory across multiple bra
    DB_PASSWORD=your-password
    ```
 
+5. **Run the application**:
+   ```bash
+   python simple_dashboard.py
+   ```
+
+   Access at: http://localhost:5005
+
 ## 🎯 Usage
 
-### Basic Commands
+### 🌐 Live Dashboard
 
-#### Show Dashboard
-```bash
-python3 cli.py dashboard
-```
-Displays a comprehensive dashboard with:
-- Brand overview with utilization rates
-- Recent inventory slots
-- Key metrics and statistics
+**Access the dashboard at: https://campaign-inventory-api.onrender.com**
 
-#### List Inventory
-```bash
-# List all inventory slots
-python3 cli.py list
+### 📊 Dashboard Sections
 
-# Filter by date range
-python3 cli.py list --start-date 2025-01-06 --end-date 2025-01-10
+#### **Weekly Overview (Top Section)**
+- **Real-time date display**: Shows current Monday-Sunday range
+- **Brand performance cards**: Booked vs Filled counts per brand
+- **Week navigation**: "Next Week" and "Week After" buttons
+- **Professional layout**: Clean, corporate-ready design
 
-# Filter by brand
-python3 cli.py list --brand "Accountancy Age"
+#### **Brand Performance Overview**
+- **6 brand cards** in responsive grid layout
+- **Utilization metrics**: Booked/Available ratios with percentages
+- **Color-coded indicators**: Green/Yellow/Red based on utilization
+- **Interactive elements**: Hover effects and click-to-expand modals
 
-# Filter by product
-python3 cli.py list --product "Press_Release"
+#### **Advanced Filtering System**
+- **🔍 Client Search**: Type-ahead autocomplete (100+ clients)
+- **📦 Product Filter**: Newsletter sponsorships, mailshots, content production
+- **🏢 Brand Filter**: All 6 brands with dropdown selection
+- **📅 Date Range**: Flexible start/end date pickers
+- **📊 Status Filter**: Booked, Available, On Hold options
 
-# Filter by status
-python3 cli.py list --status "booked"
-
-# Combine filters
-python3 cli.py list --brand "AA" --start-date 2025-01-06 --end-date 2025-01-10
-```
-
-#### Show Available Options
-```bash
-# Show available brands
-python3 cli.py brands
-
-# Show available products
-python3 cli.py products
-```
-
-#### Export Data
-```bash
-# Export inventory to CSV
-python3 cli.py export inventory --format csv --start-date 2025-01-06 --end-date 2025-01-10
-
-# Export brand summaries to JSON
-python3 cli.py export brands --format json
-
-# Export with filters
-python3 cli.py export inventory --format csv --brand "AA" --product "Press_Release"
-```
-
-### Advanced Usage
-
-#### Custom Date Ranges
-The system supports flexible date filtering. Dates are automatically converted to the database format:
-```bash
-python3 cli.py list --start-date 2025-01-06 --end-date 2025-01-20
-```
-
-#### Filtering Options
-- **Brand**: Filter by specific brand (AA, BG, CFO, GT, HRD, CZ)
-- **Product**: Filter by product type (Press_Release, Mailshot, etc.)
-- **Status**: Filter by booking status (booked, available, hold)
-- **Client**: Filter by client name
-- **Date Range**: Filter by date range
+#### **Results Table**
+- **Paginated display**: 20 results per page
+- **Real-time updates**: Instant filtering and search
+- **Export ready**: Framework for CSV/JSON export (planned)
+- **Responsive design**: Works on all screen sizes
 
 ## 🏗️ Architecture
 
 ### Core Components
 
-1. **Database Module** (`database.py`):
-   - Connection pooling for efficient database access
-   - Query execution with automatic connection management
-   - Support for complex date filtering
+1. **Flask Backend** (`simple_dashboard.py`):
+   - RESTful API endpoints
+   - PostgreSQL database integration with psycopg-binary
+   - Connection pooling for performance
+   - CORS support for frontend communication
+   - Environment variable configuration
 
-2. **Data Models** (`models.py`):
-   - `InventorySlot`: Represents individual inventory slots
-   - `BrandSummary`: Brand-level inventory summaries
-   - `Client`: Client information and metrics
-   - `CampaignMetrics`: Overall campaign KPIs
-   - `FilterOptions`: Flexible filtering system
+2. **Web Frontend** (`index.html`):
+   - Modern dashboard UI with Tailwind CSS
+   - JavaScript-powered interactivity
+   - Real-time API communication
+   - Responsive design for all devices
+   - Advanced filtering and search
 
-3. **CLI Interface** (`cli.py`):
-   - Command-line interface with argparse
-   - Interactive dashboard display
-   - Data export functionality
-   - Comprehensive error handling
+3. **Database Layer**:
+   - PostgreSQL with AWS RDS hosting
+   - Multiple brand-specific inventory tables
+   - Campaign ledger for booking data
+   - Optimized queries with proper indexing
 
 ### Database Schema
 
-The system works with the following key tables:
-- **Inventory Tables**: `{brand}_inventory` (6 tables)
-- **Campaign Ledger**: `campaign_ledger`
-- **Booking Tables**: `{brand}_{product}_booking`
-
-## 📊 Data Models
-
-### InventorySlot
-```python
-@dataclass
-class InventorySlot:
-    slot_id: int
-    slot_date: str
-    status: str
-    booking_id: str
-    product: str
-    brand: str
-    client_name: str
-    contract_id: str
-```
-
-### BrandSummary
-```python
-@dataclass
-class BrandSummary:
-    brand: str
-    name: str
-    total_slots: int
-    booked: int
-    available: int
-    on_hold: int
-    percentage: float
-```
+The system works with these key database tables:
+- **Inventory Tables**: `{brand}_inventory` (6 tables: aa_inventory, bob_inventory, etc.)
+- **Campaign Ledger**: `campaign_ledger` (booking details and client information)
+- **Form Submissions**: `sponsorship_bookings_form_submissions` (lead tracking)
 
 ## 🔧 Configuration
 
 ### Environment Variables
-- `DB_HOST`: Database host
-- `DB_PORT`: Database port (default: 5432)
-- `DB_NAME`: Database name
-- `DB_USER`: Database username
-- `DB_PASSWORD`: Database password
-- `DATABASE_URL`: Alternative database URL format
+```env
+DB_HOST=contentive-warehouse-instance-1.cq8sion7djdk.eu-west-2.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=analytics
+DB_USER=kunj.chacha@contentive.com
+DB_PASSWORD=your-password-here
+DATABASE_URL=postgresql://user:pass@host:port/dbname  # Alternative format
+```
 
 ### Database Connection
-The system uses pg8000 for PostgreSQL connectivity with connection pooling for optimal performance.
+The system uses **psycopg-binary** for reliable PostgreSQL connectivity with:
+- Connection pooling for optimal performance
+- Automatic reconnection on failures
+- Environment-based configuration
 
 ## 📈 Performance Features
 
-- **Connection Pooling**: Reuses database connections for better performance
-- **Efficient Queries**: Optimized SQL queries with proper indexing
-- **Lazy Loading**: Data is loaded only when needed
-- **Memory Management**: Automatic cleanup of database connections
+- **Connection Pooling**: Reuses database connections efficiently
+- **API Caching**: 30-second cache for frequently accessed data
+- **Lazy Loading**: Data loaded only when needed
+- **Optimized Queries**: Efficient SQL with proper JOINs and WHERE clauses
+- **Real-time Updates**: Auto-refresh every 30 seconds
 
-## 🚨 Error Handling
+## 🚀 Deployment
 
-The system includes comprehensive error handling:
-- Database connection errors
-- Query execution errors
-- Invalid date formats
-- Missing required parameters
-- Graceful degradation on errors
+### Backend (Render.com)
+The Flask API is deployed on Render.com with:
+- **Service Name**: `campaign-inventory-api`
+- **Runtime**: Python 3.11.7
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `gunicorn simple_dashboard:app --bind 0.0.0.0:$PORT`
+- **Live URL**: https://campaign-inventory-api.onrender.com
 
-## 📝 Examples
+### Frontend (GitHub Pages)
+The dashboard can be deployed to GitHub Pages:
+1. Go to repository Settings → Pages
+2. Select "Deploy from a branch"
+3. Choose `main` branch and `/ (root)` folder
+4. Access at: `https://kunjchachaclickz.github.io/Campaign-Inventory/`
 
-### Daily Inventory Check
-```bash
-# Check today's inventory
-python3 cli.py dashboard
+## 🔗 API Endpoints
 
-# Export today's data
-python3 cli.py export inventory --format csv --start-date $(date +%Y-%m-%d) --end-date $(date +%Y-%m-%d)
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Main dashboard page |
+| `/api/brand-overview` | GET | Brand performance summary |
+| `/api/inventory` | GET | Filtered inventory results |
+| `/api/clients` | GET | Client list for autocomplete |
+| `/api/weekly-comparison` | GET | Weekly booked vs filled data |
+| `/api/brand-product-breakdown` | GET | Product performance by brand |
 
-### Weekly Report
-```bash
-# Generate weekly report
-python3 cli.py list --start-date 2025-01-06 --end-date 2025-01-12
+## 📊 Business Value
 
-# Export weekly data
-python3 cli.py export inventory --format csv --start-date 2025-01-06 --end-date 2025-01-12
-```
+### For Sales Teams
+- **Real-time visibility** into inventory availability
+- **Quick identification** of high-performing products
+- **Client booking history** and trends analysis
+- **Data-driven campaign planning**
 
-### Brand-Specific Analysis
-```bash
-# Analyze specific brand
-python3 cli.py list --brand "Accountancy Age" --start-date 2025-01-01 --end-date 2025-01-31
+### For Clients
+- **Transparent view** of available inventory slots
+- **Flexible filtering** by preferred products/brands
+- **Weekly performance tracking** for booked campaigns
+- **Self-service booking insights**
 
-# Export brand data
-python3 cli.py export inventory --format json --brand "AA"
-```
-
-## 🔄 Migration from Flask
-
-This CLI system replaces the previous Flask web application with:
-- ✅ Better performance (no web server overhead)
-- ✅ Easier automation and scripting
-- ✅ Command-line integration
-- ✅ Data export capabilities
-- ✅ Simplified deployment
+### For Management
+- **Brand-wise performance analytics**
+- **Booking rate optimization insights**
+- **Revenue forecasting** based on inventory utilization
+- **Cross-brand inventory management**
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🆘 Support
 
 For support and questions:
-1. Check the documentation
-2. Review the examples
-3. Check the issue tracker
+1. Check the deployment logs in Render.com dashboard
+2. Review browser console for frontend errors
+3. Check database connectivity and credentials
 4. Contact the development team
 
 ## 🔮 Future Enhancements
 
-- [ ] Real-time monitoring
-- [ ] Advanced analytics
-- [ ] Automated reporting
-- [ ] Web interface option
-- [ ] API endpoints
-- [ ] Integration with external systems
+- [ ] CSV/JSON data export functionality
+- [ ] Advanced analytics and reporting
+- [ ] Real-time notifications for inventory changes
+- [ ] Multi-user authentication and permissions
+- [ ] Integration with external booking systems
+- [ ] Automated inventory optimization suggestions
+- [ ] Mobile app companion
+- [ ] API rate limiting and monitoring
+- [ ] Automated testing and CI/CD pipeline
 
 ---
 
 **Built with ❤️ for efficient campaign inventory management**
+
+**Live Dashboard**: https://campaign-inventory-api.onrender.com
+
+**Repository**: https://github.com/KunjChachaClickZ/Campaign-Inventory</content>
+</xai:function_call"> 
+
+<xai:function_call>  
+<xai:function_call name="run_terminal_cmd">
+<parameter name="command">source venv/bin/activate && python simple_dashboard.py

@@ -675,7 +675,7 @@
         }
         
         // Weekly View Functions
-        let currentWeekOffset = 0; // 0 = next week, 1 = week after next
+        let currentWeekOffset = 0; // 0 = current week
         
         function getWeekRange(offset = 0) {
             const today = new Date();
@@ -714,7 +714,7 @@
             return getWeekRange(1); // Week after next
         }
         
-        // Switch between weeks
+        // Switch to week after
         function switchWeek(weekOffset) {
             currentWeekOffset = weekOffset;
             fetchWeeklyComparison(weekOffset);
@@ -723,7 +723,7 @@
         async function fetchWeeklyComparison(weekOffset = 0) {
             try {
                 const weekRange = getWeekRange(weekOffset);
-                
+
                 // Add timeout for weekly view
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
@@ -766,15 +766,15 @@
                         end_date: weekRange.endDate
                     },
                     summary: {
-                        total_booked: 12,
-                        total_form_submissions: 8
+                        total_scheduled: 13,
+                        total_form_submissions: 1
                     },
                     by_brand: {
-                        'AA': { booked: 3, form_submissions: 2 },
-                        'CFO': { booked: 4, form_submissions: 3 },
-                        'GT': { booked: 2, form_submissions: 1 },
-                        'BG': { booked: 2, form_submissions: 2 },
-                        'HRD': { booked: 1, form_submissions: 0 }
+                        'AA': { scheduled: 3, form_submissions: 0 },
+                        'BG': { scheduled: 1, form_submissions: 0 },
+                        'CFO': { scheduled: 6, form_submissions: 0 },
+                        'GT': { scheduled: 1, form_submissions: 1 },
+                        'HRD': { scheduled: 2, form_submissions: 0 }
                     }
                 };
                 updateWeeklyView(mockData, weekRange);
@@ -785,26 +785,16 @@
             const weeklyViewElement = document.getElementById('weeklyView');
             
             if (!data || (!data.summary.total_scheduled && !data.summary.total_form_submissions)) {
-                weeklyViewElement.innerHTML = `
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold text-white">Overview</h2>
-                        <div class="flex items-center gap-2">
-                            <button onclick="switchWeek(0)" class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 rounded transition-colors ${currentWeekOffset === 0 ? 'bg-gray-500' : ''}">
-                                Next Week
-                            </button>
-                            <button onclick="switchWeek(1)" class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 rounded transition-colors ${currentWeekOffset === 1 ? 'bg-gray-500' : ''}">
-                                Week After
-                            </button>
-                        </div>
-                    </div>
-                    <div class="text-center text-gray-400 text-sm mb-6">
-                        ${weekRange.startDateFormatted} to ${weekRange.endDateFormatted}
-                    </div>
-                    <div class="text-center text-gray-400 py-8">
-                        <div class="text-4xl mb-2">📅</div>
-                        <div>No data for this week</div>
-                    </div>
-                `;
+                weeklyViewElement.innerHTML = '<div class="flex justify-between items-center mb-4">' +
+                    '<h2 class="text-lg font-bold text-white">Weekly Overview</h2>' +
+                    '</div>' +
+                    '<div class="text-center text-gray-400 text-sm mb-6">' +
+                        weekRange.startDateFormatted + ' to ' + weekRange.endDateFormatted +
+                    '</div>' +
+                    '<div class="text-center text-gray-400 py-8">' +
+                        '<div class="text-4xl mb-2">📅</div>' +
+                        '<div>No data for this week</div>' +
+                    '</div>';
                 return;
             }
 
@@ -813,110 +803,53 @@
             
             let brandHtml = '';
             Object.entries(byBrand).forEach(([brandCode, brandData]) => {
-                brandHtml += `
-                    <div class="bg-gray-700 rounded-lg p-3 text-center">
-                        <div class="text-sm font-medium text-gray-300 mb-2">${brandCode}</div>
-                        <div class="space-y-1">
-                            <div class="flex items-center justify-center gap-1">
-                                <span class="text-lg font-bold text-green-400">${brandData.scheduled}</span>
-                                <span class="text-xs text-gray-400">Booked</span>
-                            </div>
-                            <div class="flex items-center justify-center gap-1">
-                                <span class="text-lg font-bold text-blue-400">${brandData.form_submissions}</span>
-                                <span class="text-xs text-gray-400">Filled</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                brandHtml += '<div class="bg-gray-800 rounded-lg p-6 border border-gray-600 hover:border-gray-500 h-full flex flex-col items-center justify-center group relative overflow-hidden cursor-pointer transition-all duration-300">' +
+                    '<div class="relative z-10 text-center">' +
+                        '<h3 class="text-xs font-semibold text-white mb-4 group-hover:text-blue-300 transition-colors duration-300">' + brandCode + '</h3>' +
+                        '<div class="space-y-2">' +
+                            '<div class="text-green-400 text-lg font-bold">' + brandData.scheduled + '</div>' +
+                            '<div class="text-xs text-gray-500">Booked</div>' +
+                            '<div class="text-blue-400 text-lg font-bold">' + brandData.form_submissions + '</div>' +
+                            '<div class="text-xs text-gray-500">Filled</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
             });
 
-            weeklyViewElement.innerHTML = `
-                <!-- Header with Navigation -->
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold text-white">Overview</h2>
-                    <div class="flex items-center gap-2">
-                        <button onclick="switchWeek(0)" class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 rounded transition-colors ${currentWeekOffset === 0 ? 'bg-gray-500' : ''}">
-                            Next Week
-                        </button>
-                        <button onclick="switchWeek(1)" class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 rounded transition-colors ${currentWeekOffset === 1 ? 'bg-gray-500' : ''}">
-                            Week After
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Week Range -->
-                <div class="text-center text-gray-400 text-sm mb-6">
-                    ${weekRange.startDateFormatted} to ${weekRange.endDateFormatted}
-                </div>
-                
-                    
-                <!-- Brand Weekly Performance -->
-                <div>
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">Brand Weekly Performance</h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                        ${brandHtml}
-                    </div>
-                    
-                </div>
-            `;
+            weeklyViewElement.innerHTML = '<div class="flex justify-between items-center mb-4">' +
+                '<h2 class="text-lg font-bold text-white">Weekly Overview</h2>' +
+                '</div>' +
+
+                '<div class="text-center text-gray-400 text-sm mb-6">' +
+                    weekRange.startDateFormatted + ' to ' + weekRange.endDateFormatted +
+                '</div>' +
+
+                '<div>' +
+                    '<h3 class="text-sm font-semibold text-gray-300 mb-4">Brand Weekly Performance</h3>' +
+                    '<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">' +
+                        brandHtml +
+                    '</div>' +
+                '</div>';
         }
 
         function updateWeeklyViewError() {
             const weeklyViewElement = document.getElementById('weeklyView');
-            weeklyViewElement.innerHTML = `
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-semibold text-blue-400">📅 Weekly Overview</h3>
-                </div>
-                <div class="text-red-400 text-xs">
-                    <div class="flex items-center gap-1">
-                        <span>❌</span>
-                        <span>Error loading data</span>
-                    </div>
-                </div>
-            `;
+            const weekRange = getWeekRange(currentWeekOffset);
+            weeklyViewElement.innerHTML = '<div class="flex justify-between items-center mb-4">' +
+                '<h2 class="text-lg font-bold text-white">Weekly Overview</h2>' +
+                '</div>' +
+                '<div class="text-center text-gray-400 text-sm mb-6">' +
+                    weekRange.startDateFormatted + ' to ' + weekRange.endDateFormatted +
+                '</div>' +
+                '<div class="text-center text-red-400 text-sm py-8">' +
+                    '<div class="flex items-center gap-1 justify-center">' +
+                        '<span>❌</span>' +
+                        '<span>Error loading data</span>' +
+                    '</div>' +
+                '</div>';
         }
 
 
-        // Fetch weekly data for the current week
-        async function fetchWeeklyData() {
-            try {
-                const today = new Date();
-                const startOfWeek = new Date(today);
-                startOfWeek.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
-                const endOfWeek = new Date(startOfWeek);
-                endOfWeek.setDate(startOfWeek.getDate() + 6); // End of current week (Saturday)
-                
-                const startDate = startOfWeek.toISOString().split('T')[0];
-                const endDate = endOfWeek.toISOString().split('T')[0];
-                
-                console.log(`Fetching weekly data for ${startDate} to ${endDate}`);
-                
-                const response = await fetch(`${API_BASE}/weekly-comparison?start_date=${startDate}&end_date=${endDate}`, {
-                    signal: AbortSignal.timeout(10000)
-                });
-                
-                console.log('Weekly API response status:', response.status);
-                console.log('Weekly API response ok:', response.ok);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Weekly API Error Response:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                }
-                
-                const data = await response.json();
-                console.log('Weekly data received successfully:', data);
-                
-                // Update the weekly view
-                const weekRange = getWeekRange(0); // Use the same function to get properly formatted dates
-                updateWeeklyView(data, weekRange);
-                
-            } catch (error) {
-                console.error('Error fetching weekly data:', error);
-                console.error('Weekly error details:', error.message);
-                updateWeeklyViewError();
-            }
-        }
 
         // Load client data for autocomplete
         async function loadClients() {
@@ -1192,15 +1125,14 @@
             // Load main dashboard data first
             fetchOverviewData().then(() => updateLoadingProgress(1));
             fetchData().then(() => updateLoadingProgress(2));
-            fetchWeeklyData().then(() => updateLoadingProgress(3));
             loadClients().then(() => {
                 setupClientFilter(); // Set up autocomplete after clients are loaded
-                updateLoadingProgress(4);
+                updateLoadingProgress(3);
             });
-            
+
             // Load weekly view independently (non-blocking)
             setTimeout(() => {
-                fetchWeeklyComparison(currentWeekOffset).then(() => updateLoadingProgress(4));
+                fetchWeeklyComparison(0).then(() => updateLoadingProgress(4)); // Load current week
             }, 1000); // 1 second delay to not block main dashboard
         });
 

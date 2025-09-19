@@ -7,14 +7,14 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Import pg8000 for PostgreSQL connection
+# Import psycopg for PostgreSQL connection
 try:
-    import pg8000
-    PG8000_AVAILABLE = True
-    print("Using pg8000 for PostgreSQL connection")
+    import psycopg
+    PSYCOPG_AVAILABLE = True
+    print("Using psycopg for PostgreSQL connection")
 except ImportError as e:
-    print(f"Error: pg8000 not available: {e}")
-    PG8000_AVAILABLE = False
+    print(f"Error: psycopg not available: {e}")
+    PSYCOPG_AVAILABLE = False
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -23,7 +23,7 @@ CORS(app)  # Enable CORS for all routes
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'contentive-warehouse-instance-1.cq8sion7djdk.eu-west-2.rds.amazonaws.com'),
     'port': int(os.getenv('DB_PORT', 5432)),
-    'database': os.getenv('DB_NAME', 'analytics'),
+    'dbname': os.getenv('DB_NAME', 'analytics'),  # Changed from 'database' to 'dbname' for psycopg
     'user': os.getenv('DB_USER', 'kunj.chacha@contentive.com'),
     'password': os.getenv('DB_PASSWORD', '(iRFw989b{5h')
 }
@@ -35,7 +35,7 @@ if os.getenv('DATABASE_URL'):
     DB_CONFIG = {
         'host': url.hostname,
         'port': url.port or 5432,
-        'database': url.path[1:],
+        'dbname': url.path[1:],  # Changed from 'database' to 'dbname' for psycopg
         'user': url.username,
         'password': url.password
     }
@@ -55,12 +55,12 @@ def init_connection_pool():
 def get_db_connection():
     """Get database connection with connection pooling"""
     global _connection_pool, _connection_lock
-    
-    if not PG8000_AVAILABLE:
-        raise Exception("pg8000 not available")
-    
+
+    if not PSYCOPG_AVAILABLE:
+        raise Exception("psycopg not available")
+
     init_connection_pool()
-    
+
     with _connection_lock:
         # Try to reuse existing connection
         if _connection_pool:
@@ -74,11 +74,11 @@ def get_db_connection():
             except:
                 # Connection is dead, create new one
                 pass
-        
+
         # Create new connection
         try:
-            conn = pg8000.connect(**DB_CONFIG)
-            print("Database connection successful with pg8000!")
+            conn = psycopg.connect(**DB_CONFIG)
+            print("Database connection successful with psycopg!")
             return conn
         except Exception as e:
             print(f"Database connection error: {e}")
@@ -205,11 +205,11 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         
         for brand_code, table_name in brand_tables.items():
             query = f"""
-            SELECT 
+        SELECT 
                 '{brand_code}' as brand,
-                COUNT(DISTINCT inv."ID") as total_slots,
-                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
-                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
+            COUNT(DISTINCT inv."ID") as total_slots,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
+            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
                 COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold', 'On hold ') THEN inv."ID" END) as on_hold
             FROM campaign_metadata.{table_name} inv
             {base_where}
@@ -226,15 +226,15 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
                 
                 # Calculate percentage
                 percentage = (booked / total_slots * 100) if total_slots > 0 else 0
-                
-                brands_data.append({
-                    'brand': brand_code,
-                    'name': brand_code,  # Use brand code as name for now
-                    'total_slots': total_slots,
-                    'booked': booked,
-                    'available': available,
-                    'on_hold': on_hold,
-                    'percentage': round(percentage, 2)
+
+            brands_data.append({
+                'brand': brand_code,
+                'name': brand_code,  # Use brand code as name for now
+                'total_slots': total_slots,
+                'booked': booked,
+                'available': available,
+                'on_hold': on_hold,
+                'percentage': round(percentage, 2)
                 })
         
         return brands_data
@@ -441,7 +441,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
             # Process results for this brand
             for row in brand_results:
                 try:
-                    # pg8000 returns tuples: (slot_id, slot_date, status, booking_id, product, brand, client_name, contract_id)
+                    # psycopg returns tuples: (slot_id, slot_date, status, booking_id, product, brand, client_name, contract_id)
                     # Determine status
                     if row[2] == 'Booked':  # status
                         display_status = 'Booked'
@@ -519,7 +519,7 @@ def get_upcoming_deliverables():
         
         deliverables = []
         for row in results:
-            # pg8000 returns tuples: (client, product, deliverable_date)
+            # psycopg returns tuples: (client, product, deliverable_date)
             deliverables.append({
                 'client': row[0],           # client
                 'product': row[1],          # product
@@ -616,7 +616,7 @@ def api_campaign_ledger():
         # Convert to list of dictionaries
         result = []
         for row in campaign_data:
-            # pg8000 returns tuples: (id, client, product, brand, start_date, end_date, status)
+            # psycopg returns tuples: (id, client, product, brand, start_date, end_date, status)
             result.append({
                 'id': row[0],                                    # id
                 'client': row[1],                                # client
@@ -768,39 +768,38 @@ def api_weekly_comparison():
         if not start_date or not end_date:
             return jsonify({"error": "start_date and end_date parameters are required"}), 400
         
-        # Get scheduled campaigns from campaign ledger for the week
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-        
-        campaign_query = """
-        SELECT 
-            "Brand",
-            "Client Name",
-            "Scheduled Live Date",
-            "Status",
-            "Contract ID",
-            "Booking ID"
-        FROM campaign_metadata.campaign_ledger
-        WHERE "Scheduled Live Date" >= %s AND "Scheduled Live Date" <= %s
-        """
-        
-        cursor.execute(campaign_query, (start_date, end_date))
-        campaign_results = cursor.fetchall()
-        
-        # Convert campaign data to list of dictionaries
-        scheduled_campaigns = []
-        for row in campaign_results:
-            scheduled_campaigns.append({
-                'brand': row[0],
-                'client_name': row[1],
-                'scheduled_live_date': row[2].isoformat() if row[2] else None,
-                'status': row[3],
-                'contract_id': row[4],
-                'booking_id': row[5]
-            })
-        
-        cursor.close()
-        conn.close()
+        # Use the existing inventory API to get booked slots with booking IDs
+        # This is simpler and more reliable than creating complex UNION queries
+        import requests
+
+        # Get inventory data for the date range
+        inventory_url = f"http://localhost:5005/api/inventory?start_date={start_date}&end_date={end_date}&limit=10000"
+        try:
+            inventory_response = requests.get(inventory_url, timeout=30)
+            if inventory_response.status_code == 200:
+                all_inventory = inventory_response.json()
+                # Filter for only booked/scheduled slots with valid booking IDs
+                inventory_bookings = []
+                for item in all_inventory:
+                    # Include Booked, Hold, hold, On hold as "scheduled"
+                    status = item.get('status', '').strip().lower()
+                    is_scheduled = (status == 'booked' or
+                                   'hold' in status or
+                                   'on hold' in status)
+
+                    if (is_scheduled and
+                        item.get('booking_id') and
+                        item.get('booking_id') not in ['', 'N/A', None]):
+                        inventory_bookings.append({
+                            'booking_id': item['booking_id'],
+                            'brand': item['brand'],
+                            'client_name': item.get('client_name', 'No Client'),
+                            'slot_date': item['slot_date']
+                        })
+            else:
+                inventory_bookings = []
+        except:
+            inventory_bookings = []
         
         # Get form submissions data for the week
         conn = get_db_connection()
@@ -840,11 +839,11 @@ def api_weekly_comparison():
         scheduled_by_brand = {}
         form_by_brand = {}
         
-        # Count unique scheduled campaigns by booking ID (source of truth)
+        # Count unique scheduled campaigns by booking ID from inventory (source of truth)
         unique_booking_ids = set()
-        for campaign in scheduled_campaigns:
-            brand = campaign.get('brand', 'Unknown')
-            booking_id = campaign.get('booking_id', '')  # Using booking_id field
+        for booking in inventory_bookings:
+            brand = booking.get('brand', 'Unknown')
+            booking_id = booking.get('booking_id', '')  # Using booking_id field
             if booking_id and booking_id != 'N/A':
                 unique_key = f"{brand}_{booking_id}"
                 if unique_key not in unique_booking_ids:
@@ -1040,13 +1039,13 @@ def api_weekly_overview():
                     inv."Booking ID" as booking_id,
                     inv."Media_Asset" as product,
                     '{brand_code}' as brand,
-                    COALESCE(cl."Client Name", 'No Client') as client_name,
+                COALESCE(cl."Client Name", 'No Client') as client_name,
                     COALESCE(cl."Contract ID", 'N/A') as contract_id
                 FROM campaign_metadata.{table} inv
-                LEFT JOIN campaign_metadata.campaign_ledger cl 
-                    ON inv."Booking ID" = cl."Booking ID" 
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
                     AND cl."Brand" = '{brand_code}'
-                WHERE inv."ID" >= 8000
+            WHERE inv."ID" >= 8000
                  AND ("Dates" = 'Monday, January 06, 2025' OR "Dates" = 'Tuesday, January 07, 2025' OR "Dates" = 'Wednesday, January 08, 2025' OR "Dates" = 'Thursday, January 09, 2025' OR "Dates" = 'Friday, January 10, 2025' OR "Dates" = 'Saturday, January 11, 2025' OR "Dates" = 'Sunday, January 12, 2025')
                 ORDER BY inv."ID", 
                     CASE 
@@ -1057,22 +1056,22 @@ def api_weekly_overview():
                         WHEN inv."Booked/Not Booked" = 'On hold' THEN 2
                         ELSE 3
                     END, inv."Dates" DESC
-                """
-                
-                cursor.execute(query)
-                results = cursor.fetchall()
-                
-                for row in results:
-                    weekly_data.append({
-                        'slot_id': row[0],
-                        'slot_date': row[1],
-                        'status': row[2],
-                        'booking_id': row[3],
-                        'product': row[4],
-                        'brand': row[5],
-                        'client_name': row[6],
-                        'contract_id': row[7]
-                    })
+        """
+        
+            cursor.execute(query)
+            results = cursor.fetchall()
+        
+            for row in results:
+                weekly_data.append({
+                    'slot_id': row[0],
+                    'slot_date': row[1],
+                    'status': row[2],
+                    'booking_id': row[3],
+                    'product': row[4],
+                    'brand': row[5],
+                    'client_name': row[6],
+                    'contract_id': row[7]
+                })
             
         finally:
             cursor.close()
@@ -1135,21 +1134,21 @@ HTML_TEMPLATE = """
         <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
             <h3 class="text-xl font-bold text-white mb-4 flex items-center">
                 <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
                 Brand Overview
             </h3>
             <div id="brandOverview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="text-center text-gray-400">Loading brand data...</div>
+                </div>
             </div>
-        </div>
 
         <!-- Weekly Overview Section -->
         <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
             <h3 class="text-xl font-bold text-white mb-4 flex items-center">
                 <svg class="w-6 h-6 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
+                        </svg>
                 Weekly Overview
             </h3>
             <div id="weeklyOverview" class="grid grid-cols-1 md:grid-cols-7 gap-4">
@@ -1327,12 +1326,12 @@ HTML_TEMPLATE = """
                 </tr>
             `;
             
-            // Fetch filtered data
-            fetch(`/api/inventory?${params.toString()}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateFilteredResultsTable(data);
-                })
+                         // Fetch filtered data
+             fetch(`/api/inventory?${params.toString()}`)
+                 .then(response => response.json())
+                 .then(data => {
+                     updateFilteredResultsTable(data);
+                 })
                 .catch(error => {
                     console.log('Filter error:', error);
                     tbody.innerHTML = `
@@ -1343,16 +1342,16 @@ HTML_TEMPLATE = """
                 });
         }
         
-        function resetFilters() {
-            document.getElementById('productFilter').value = '';
-            document.getElementById('brandFilter').value = '';
+                 function resetFilters() {
+             document.getElementById('productFilter').value = '';
+             document.getElementById('brandFilter').value = '';
             document.getElementById('startDate').value = '2025-01-06';
             document.getElementById('endDate').value = '2025-01-20';
             document.getElementById('clientFilter').value = '';
             document.getElementById('statusFilter').value = '';
-            // Clear the results table
-            updateFilteredResultsTable([]);
-        }
+             // Clear the results table
+             updateFilteredResultsTable([]);
+         }
         
         // Load client data for filter
         let allClients = [];
@@ -1503,7 +1502,7 @@ HTML_TEMPLATE = """
                     console.error('Error loading weekly overview:', error);
                     document.getElementById('weeklyOverview').innerHTML = '<div class="text-center text-red-400 col-span-7">Error loading weekly data</div>';
                 });
-        }
+         }
         
                           function updateFilteredResultsTable(data) {
             const tbody = document.getElementById('filteredResultsTable');

@@ -20,3 +20,5 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      - key: FLASK_ENV
+        value: production
