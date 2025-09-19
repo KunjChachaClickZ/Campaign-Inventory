@@ -77,7 +77,7 @@ def get_db_connection():
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1")
                 cursor.close()
-            return conn
+                return conn
             except Exception as e:
                 # Connection is dead, create new one
                 print(f"Connection test failed: {e}")
@@ -88,9 +88,9 @@ def get_db_connection():
             conn = psycopg2.connect(**DB_CONFIG)
             print("Database connection successful with psycopg2!")
             return conn
-    except Exception as e:
-        print(f"Database connection error: {e}")
-        raise e
+        except Exception as e:
+            print(f"Database connection error: {e}")
+            raise e
 
 def return_db_connection(conn):
     """Return connection to pool for reuse"""
@@ -212,16 +212,16 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         }
         
         for brand_code, table_name in brand_tables.items():
-        query = f"""
-        SELECT 
-                    '{brand_code}' as brand,
-            COUNT(DISTINCT inv."ID") as total_slots,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
-                    COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold', 'On hold ') THEN inv."ID" END) as on_hold
-                FROM campaign_metadata.{table_name} inv
-                {base_where}
-                """
+            query = f"""
+            SELECT
+                        '{brand_code}' as brand,
+                COUNT(DISTINCT inv."ID") as total_slots,
+                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
+                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
+                        COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold', 'On hold ') THEN inv."ID" END) as on_hold
+                    FROM campaign_metadata.{table_name} inv
+                    {base_where}
+                    """
 
             cursor.execute(query)
             result = cursor.fetchone()
@@ -235,7 +235,7 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
                 # Calculate percentage
                 percentage = (booked / total_slots * 100) if total_slots > 0 else 0
 
-                    brands_data.append({
+                brands_data.append({
                     'brand': brand_code,
                     'name': brand_code,  # Use brand code as name for now
                     'total_slots': total_slots,
@@ -396,7 +396,7 @@ def get_filtered_inventory_slots(product_filter=None, brand_filter=None, start_d
                     while current_date < end_dt:
                         # Format as "Monday, January 06, 2025"
                         formatted_date = current_date.strftime('%A, %B %d, %Y')
-                            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                        date_conditions.append(f'"Dates" = \'{formatted_date}\'')
                         current_date += timedelta(days=1)
                     
                     if date_conditions:
@@ -1065,11 +1065,11 @@ def api_weekly_overview():
                         ELSE 3
                     END, inv."Dates" DESC
         """
-        
-        cursor.execute(query)
-        results = cursor.fetchall()
-        
-        for row in results:
+
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+            for row in results:
                 weekly_data.append({
                     'slot_id': row[0],
                     'slot_date': row[1],
@@ -1085,8 +1085,8 @@ def api_weekly_overview():
             print(f"Error in weekly data query: {e}")
             return []
         finally:
-        cursor.close()
-        conn.close()
+            cursor.close()
+            conn.close()
         
         # Process data by day
         days_data = {}
