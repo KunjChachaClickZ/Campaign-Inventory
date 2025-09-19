@@ -212,37 +212,37 @@ def get_inventory_summary(product_filter=None, brand_filter=None, start_date=Non
         }
         
         for brand_code, table_name in brand_tables.items():
-        query = f"""
-        SELECT 
-                '{brand_code}' as brand,
-            COUNT(DISTINCT inv."ID") as total_slots,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
-            COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
-                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold', 'On hold ') THEN inv."ID" END) as on_hold
-            FROM campaign_metadata.{table_name} inv
-            {base_where}
-            """
-            
+            query = f"""
+            SELECT
+                    '{brand_code}' as brand,
+                COUNT(DISTINCT inv."ID") as total_slots,
+                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN inv."ID" END) as booked,
+                COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN inv."ID" END) as available,
+                    COUNT(DISTINCT CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold', 'On hold ') THEN inv."ID" END) as on_hold
+                FROM campaign_metadata.{table_name} inv
+                {base_where}
+                """
+
             cursor.execute(query)
             result = cursor.fetchone()
-            
+
             if result:
                 total_slots = result[1] or 0
                 booked = result[2] or 0
                 available = result[3] or 0
                 on_hold = result[4] or 0
-                
+
                 # Calculate percentage
                 percentage = (booked / total_slots * 100) if total_slots > 0 else 0
 
-                    brands_data.append({
-                'brand': brand_code,
-                'name': brand_code,  # Use brand code as name for now
-                'total_slots': total_slots,
-                'booked': booked,
-                'available': available,
-                'on_hold': on_hold,
-                'percentage': round(percentage, 2)
+                brands_data.append({
+                    'brand': brand_code,
+                    'name': brand_code,  # Use brand code as name for now
+                    'total_slots': total_slots,
+                    'booked': booked,
+                    'available': available,
+                    'on_hold': on_hold,
+                    'percentage': round(percentage, 2)
                 })
         
         return brands_data
