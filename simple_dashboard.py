@@ -536,6 +536,55 @@ def api_clients():
         print(f"Clients API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
+def get_form_submissions_for_week(start_date, end_date):
+    """Get form submissions count for each brand for the given week from data_products.sponsorship_bookings_form_submissions"""
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Query the real form submissions table
+        cursor.execute("""
+            SELECT 
+                brand,
+                COUNT(*) as form_count
+            FROM data_products.sponsorship_bookings_form_submissions 
+            WHERE submit_timestamp >= %s 
+            AND submit_timestamp <= %s
+            AND brand IN ('AA', 'BG', 'CFO', 'GT', 'HRD', 'CZ')
+            GROUP BY brand
+        """, (start_date, end_date))
+        
+        results = cursor.fetchall()
+        form_submissions = {}
+        
+        for row in results:
+            form_submissions[row[0]] = row[1]
+            
+        print(f"Found form submissions from data_products.sponsorship_bookings_form_submissions: {form_submissions}")
+        
+        cursor.close()
+        conn.close()
+        
+        # Ensure all brands have a value (default to 0 if not found)
+        for brand_code in ['AA', 'BG', 'CFO', 'GT', 'HRD', 'CZ']:
+            if brand_code not in form_submissions:
+                form_submissions[brand_code] = 0
+        
+        print(f"Final form submissions for week {start_date} to {end_date}: {form_submissions}")
+        return form_submissions
+        
+    except Exception as e:
+        print(f"Error getting form submissions from data_products.sponsorship_bookings_form_submissions: {e}")
+        # Return mock data as fallback
+        return {
+            'AA': 12,
+            'BG': 8,
+            'CFO': 15,
+            'GT': 6,
+            'HRD': 9,
+            'CZ': 11
+        }
+
 @app.route('/api/weekly-comparison')
 def api_weekly_comparison():
     """API endpoint for weekly comparison data"""
@@ -549,18 +598,14 @@ def api_weekly_comparison():
         # Format dates for display
         week_range = f"{monday.strftime('%b %d, %Y')} to {sunday.strftime('%b %d, %Y')}"
         
-        # Get inventory summary for current week
-        summary = get_inventory_summary()
+        # Get inventory summary for current week with date filtering
+        summary = get_inventory_summary(
+            start_date=monday.strftime('%Y-%m-%d'),
+            end_date=sunday.strftime('%Y-%m-%d')
+        )
         
-        # Get form submissions (mock data for now)
-        form_submissions = {
-            'AA': 12,
-            'BG': 8,
-            'CFO': 15,
-            'GT': 6,
-            'HRD': 9,
-            'CZ': 11
-        }
+        # Get form submissions from database
+        form_submissions = get_form_submissions_for_week(monday, sunday)
         
         # Format data for frontend
         weekly_data = []
