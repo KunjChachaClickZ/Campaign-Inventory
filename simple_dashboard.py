@@ -4,6 +4,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import requests
+import logging
 
 app = Flask(__name__)
 CORS(app)
@@ -34,7 +35,7 @@ def get_db_connection():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         print("Database connection successful with psycopg2!")
-        return conn
+            return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         raise e
@@ -43,6 +44,122 @@ def create_cursor(conn):
     """Create a cursor with proper error handling"""
     return conn.cursor()
 
+def detect_date_format(sample_dates):
+    """Detect the date format used in the database"""
+    if not sample_dates:
+        return None
+        
+    formats_to_try = [
+        '%A, %B %d, %Y',      # Monday, April 07, 2025
+        '%A, %B %d, %Y',      # Monday, April 7, 2025  
+        '%Y-%m-%d',           # 2025-04-07
+        '%m/%d/%Y',           # 04/07/2025
+        '%d/%m/%Y',           # 07/04/2025
+        '%B %d, %Y',          # April 07, 2025
+        '%d %B %Y',           # 07 April 2025
+        '%Y-%m-%d %H:%M:%S',  # 2025-04-07 00:00:00
+        '%Y-%m-%d %H:%M:%S.%f',  # 2025-04-07 00:00:00.000000
+        '%d-%m-%Y',           # 07-04-2025
+        '%m-%d-%Y',           # 04-07-2025
+    ]
+    
+    for date_format in formats_to_try:
+        try:
+            for sample_date in sample_dates:
+                datetime.strptime(str(sample_date), date_format)
+            print(f"Detected date format: {date_format}")
+            return date_format
+        except ValueError:
+            continue
+    
+    print("Could not detect date format, using fallback")
+    return None
+
+def get_sample_dates_from_db(table_name, limit=10):
+    """Get sample dates from database to detect format"""
+    try:
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
+    
+        query = f"""
+        SELECT DISTINCT "Dates" 
+        FROM campaign_metadata.{table_name} 
+        WHERE "Dates" IS NOT NULL 
+        LIMIT {limit}
+        """
+        
+        cursor.execute(query)
+        results = cursor.fetchall()
+        sample_dates = [row[0] for row in results]
+        
+        cursor.close()
+        conn.close()
+        
+        return sample_dates
+            except Exception as e:
+        print(f"Error getting sample dates from {table_name}: {e}")
+        return []
+
+def generate_date_conditions(start_date, end_date, detected_format=None):
+    """Generate date conditions based on detected format or fallback formats"""
+    date_conditions = []
+    current_date = start_date
+    
+    # Fallback formats if none detected
+    fallback_formats = [
+        '%A, %B %d, %Y',      # Monday, April 07, 2025
+        '%A, %B %d, %Y',      # Monday, April 7, 2025
+        '%Y-%m-%d',           # 2025-04-07
+        '%m/%d/%Y',           # 04/07/2025
+        '%d/%m/%Y',           # 07/04/2025
+        '%B %d, %Y',          # April 07, 2025
+    ]
+    
+    formats_to_use = [detected_format] if detected_format else fallback_formats
+    
+    while current_date <= end_date:
+        for fmt in formats_to_use:
+            try:
+                formatted_date = current_date.strftime(fmt)
+                date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+                break
+            except ValueError:
+                continue
+        current_date = current_date.replace(day=current_date.day + 1)
+    
+    return date_conditions
+
+def build_date_filtered_query(table, start_date, end_date):
+    """Build query with flexible date filtering"""
+    try:
+        # Get sample dates to detect format
+        sample_dates = get_sample_dates_from_db(table)
+        detected_format = detect_date_format(sample_dates)
+        
+        # Generate date conditions
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        date_conditions = generate_date_conditions(start_dt, end_dt, detected_format)
+        
+        if date_conditions:
+            date_where_clause = ' OR '.join(date_conditions)
+            return f" AND ({date_where_clause})"
+        else:
+            print(f"Warning: No date conditions generated for {table}")
+            return ""
+    except Exception as e:
+        print(f"Error building date filter for {table}: {e}")
+        return ""
+
+def safe_date_parsing(date_string, formats):
+    """Safely parse date with multiple format attempts"""
+    for fmt in formats:
+        try:
+            return datetime.strptime(str(date_string), fmt)
+        except ValueError:
+            continue
+        return None
+    
 @app.route('/')
 def index():
     """Serve the main dashboard page"""
@@ -83,8 +200,8 @@ def api_inventory():
 def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, client=None, product=None, limit=100):
     """Get filtered inventory slots from all brand tables"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
         
         # Define brand tables and their mappings
         brand_tables = [
@@ -101,7 +218,7 @@ def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, cli
         for table, brand_code in brand_tables:
             # Skip if brand filter is specified and doesn't match
             if brand and brand.upper() != brand_code:
-                continue
+                    continue
                 
             # Build base query
             query = f"""
@@ -117,22 +234,11 @@ def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, cli
             WHERE inv."ID" >= 8000
             """
             
-            # Add date filters if provided
+            # Add date filtering if provided
             if start_date and end_date:
-                # Convert dates to the format used in the database
-                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-                
-                # Generate all dates in the range
-                date_conditions = []
-                current_date = start_dt
-                while current_date <= end_dt:
-                    formatted_date = current_date.strftime('%A, %B %d, %Y')
-                    date_conditions.append(f'"Dates" = \'{formatted_date}\'')
-                    current_date = current_date.replace(day=current_date.day + 1)
-                    
-                if date_conditions:
-                    query += f" AND ({' OR '.join(date_conditions)})"
+                # Use dynamic date filtering
+                date_filter = build_date_filtered_query(table, start_date, end_date)
+                query += date_filter
             
             # Add brand filter
             if brand:
@@ -150,7 +256,7 @@ def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, cli
             query += f" ORDER BY inv.\"last_updated\" DESC LIMIT {limit}"
             
             try:
-                cursor.execute(query)
+            cursor.execute(query)
                 results = cursor.fetchall()
                 
                 for row in results:
@@ -165,13 +271,13 @@ def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, cli
                     }
                     all_slots.append(slot_data)
                     
-            except Exception as e:
+                except Exception as e:
                 print(f"Error querying {table}: {e}")
-                continue
+                    continue
         
         cursor.close()
         conn.close()
-        
+
         return all_slots
         
     except Exception as e:
@@ -181,9 +287,9 @@ def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, cli
 def get_inventory_summary(start_date=None, end_date=None):
     """Get summary statistics for inventory with optional date filtering"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-        
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
+    
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -203,104 +309,30 @@ def get_inventory_summary(start_date=None, end_date=None):
         }
         
         for table, brand_code in brand_tables:
-            # Build base query
+            # Build base query with duplicate handling
             base_query = f"""
-            SELECT 
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.{table}
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+        SELECT 
                 COUNT(*) as total,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
                 COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
-            FROM campaign_metadata.{table}
-            WHERE "ID" >= 8000
+            FROM latest_slots
             """
             
             # Add date filtering if provided
             if start_date and end_date:
-                # Use hardcoded dates for April-September 2025 period
-                # These are the actual dates that exist in the database
-                april_september_2025_dates = [
-                    'Monday, April 07, 2025',
-                    'Monday, April 14, 2025', 
-                    'Monday, April 21, 2025',
-                    'Monday, April 28, 2025',
-                    'Monday, May 12, 2025',
-                    'Monday, May 19, 2025',
-                    'Monday, May 26, 2025',
-                    'Friday, May 23, 2025',
-                    'Friday, May 30, 2025',
-                    'Monday, June 02, 2025',
-                    'Monday, June 09, 2025',
-                    'Monday, June 16, 2025',
-                    'Monday, June 23, 2025',
-                    'Monday, June 30, 2025',
-                    'Monday, July 14, 2025',
-                    'Monday, July 21, 2025',
-                    'Monday, July 28, 2025',
-                    'Monday, August 04, 2025',
-                    'Monday, August 11, 2025',
-                    'Monday, August 18, 2025',
-                    'Monday, September 01, 2025',
-                    'Monday, September 08, 2025',
-                    'Monday, September 15, 2025',
-                    'Monday, September 22, 2025',
-                    'Monday, September 29, 2025'
-                ]
-                
-                # Check if the requested date range matches April-September 2025
-                if start_date == '2025-04-01' and end_date == '2025-09-30':
-                    # Use the hardcoded dates for April-September 2025
-                    date_conditions = [f'"Dates" = \'{date}\'' for date in april_september_2025_dates]
-                    date_where_clause = ' OR '.join(date_conditions)
-                    
-                    # Add logic to handle duplicate slot IDs by taking the latest updated slot
-                    # Use a subquery to get only the latest updated slot for each ID
-                    query = f"""
-                    WITH latest_slots AS (
-                        SELECT DISTINCT ON ("ID") *
-                        FROM campaign_metadata.{table}
-                        WHERE "ID" >= 8000
-                        ORDER BY "ID", last_updated DESC
-                    )
-                    SELECT 
-                        COUNT(*) as total,
-                        COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
-                        COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
-                        COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
-                    FROM latest_slots
-                    WHERE ({date_where_clause})
-                    """
-                else:
-                    # For other date ranges, use the original logic with duplicate handling
-                    query = f"""
-                    WITH latest_slots AS (
-                        SELECT DISTINCT ON ("ID") *
-                        FROM campaign_metadata.{table}
-                        WHERE "ID" >= 8000
-                        ORDER BY "ID", last_updated DESC
-                    )
-                    SELECT 
-                        COUNT(*) as total,
-                        COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
-                        COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
-                        COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
-                    FROM latest_slots
-                    """
+                # Use dynamic date filtering
+                date_filter = build_date_filtered_query(table, start_date, end_date)
+                query = base_query + date_filter
             else:
-                # For no date filtering, still handle duplicates
-                query = f"""
-                WITH latest_slots AS (
-                    SELECT DISTINCT ON ("ID") *
-                    FROM campaign_metadata.{table}
-                    WHERE "ID" >= 8000
-                    ORDER BY "ID", last_updated DESC
-                )
-                SELECT 
-                    COUNT(*) as total,
-                    COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
-                    COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
-                    COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
-                FROM latest_slots
-                """
+                # No date filtering
+                query = base_query
             
             try:
                 cursor.execute(query)
@@ -325,7 +357,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                         'percentage': round((brand_booked / brand_total * 100) if brand_total > 0 else 0, 1)
                     }
                     
-            except Exception as e:
+    except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
                 continue
         
@@ -401,112 +433,31 @@ def api_brand_product_breakdown():
             if brand_code == 'BOB':
                 brand_code = 'BG'
             
+            # Build base query with duplicate handling
             base_query = f"""
-            SELECT 
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.{table}
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+                SELECT 
                 inv."Media_Asset" as product,
                 COUNT(*) as total_slots,
                 COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
                 COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
                 COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
-            FROM campaign_metadata.{table} inv
-            WHERE inv."ID" >= 8000
+            FROM latest_slots inv
             """
             
             # Add date filtering if provided
             if start_date and end_date:
-                # Use hardcoded dates for April-September 2025 period
-                # These are the actual dates that exist in the database
-                april_september_2025_dates = [
-                    'Monday, April 07, 2025',
-                    'Monday, April 14, 2025', 
-                    'Monday, April 21, 2025',
-                    'Monday, April 28, 2025',
-                    'Monday, May 12, 2025',
-                    'Monday, May 19, 2025',
-                    'Monday, May 26, 2025',
-                    'Friday, May 23, 2025',
-                    'Friday, May 30, 2025',
-                    'Monday, June 02, 2025',
-                    'Monday, June 09, 2025',
-                    'Monday, June 16, 2025',
-                    'Monday, June 23, 2025',
-                    'Monday, June 30, 2025',
-                    'Monday, July 14, 2025',
-                    'Monday, July 21, 2025',
-                    'Monday, July 28, 2025',
-                    'Monday, August 04, 2025',
-                    'Monday, August 11, 2025',
-                    'Monday, August 18, 2025',
-                    'Monday, September 01, 2025',
-                    'Monday, September 08, 2025',
-                    'Monday, September 15, 2025',
-                    'Monday, September 22, 2025',
-                    'Monday, September 29, 2025'
-                ]
-                
-                # Check if the requested date range matches April-September 2025
-                if start_date == '2025-04-01' and end_date == '2025-09-30':
-                    # Use the hardcoded dates for April-September 2025
-                    date_conditions = [f'inv."Dates" = \'{date}\'' for date in april_september_2025_dates]
-                    date_where_clause = ' OR '.join(date_conditions)
-                    
-                    # Add logic to handle duplicate slot IDs by taking the latest updated slot
-                    query = f"""
-                    WITH latest_slots AS (
-                        SELECT DISTINCT ON ("ID") *
-                        FROM campaign_metadata.{table}
-                        WHERE "ID" >= 8000
-                        ORDER BY "ID", last_updated DESC
-                    )
-                    SELECT 
-                        inv."Media_Asset" as product,
-                        COUNT(*) as total_slots,
-                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
-                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
-                        COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
-                    FROM latest_slots inv
-                    WHERE ({date_where_clause})
-                    GROUP BY inv."Media_Asset" 
-                    ORDER BY total_slots DESC
-                    """
-                else:
-                    # For other date ranges, use the original logic with duplicate handling
-                    query = f"""
-                    WITH latest_slots AS (
-                        SELECT DISTINCT ON ("ID") *
-                        FROM campaign_metadata.{table}
-                        WHERE "ID" >= 8000
-                        ORDER BY "ID", last_updated DESC
-                    )
-                    SELECT 
-                        inv."Media_Asset" as product,
-                        COUNT(*) as total_slots,
-                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
-                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
-                        COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
-                    FROM latest_slots inv
-                    GROUP BY inv."Media_Asset" 
-                    ORDER BY total_slots DESC
-                    """
+                # Use dynamic date filtering
+                date_filter = build_date_filtered_query(table, start_date, end_date)
+                query = base_query + date_filter + " GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
             else:
-                # For no date filtering, still handle duplicates
-                query = f"""
-                WITH latest_slots AS (
-                    SELECT DISTINCT ON ("ID") *
-                    FROM campaign_metadata.{table}
-                    WHERE "ID" >= 8000
-                    ORDER BY "ID", last_updated DESC
-                )
-                SELECT 
-                    inv."Media_Asset" as product,
-                    COUNT(*) as total_slots,
-                    COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
-                    COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
-                    COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
-                FROM latest_slots inv
-                GROUP BY inv."Media_Asset" 
-                ORDER BY total_slots DESC
-                """
+                # No date filtering
+                query = base_query + " GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
                 
             try:
                 cursor.execute(query)
@@ -562,9 +513,9 @@ def api_clients():
             """
             
             try:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                for row in results:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        for row in results:
                     all_clients.add(row[0])
             except Exception as e:
                 print(f"Error querying {table} for clients: {e}")
