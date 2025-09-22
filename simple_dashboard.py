@@ -37,7 +37,7 @@ def get_db_connection():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         print("Database connection successful with psycopg2!")
-            return conn
+        return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         raise e
@@ -81,15 +81,15 @@ def api_inventory():
         
         return jsonify(inventory_data)
         
-            except Exception as e:
+    except Exception as e:
         print(f"Inventory API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, client=None, product=None, limit=100):
     """Get filtered inventory slots from all brand tables"""
     try:
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
         
         # Define brand tables and their mappings
         brand_tables = [
