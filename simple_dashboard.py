@@ -235,7 +235,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                 # Convert dates to the format used in the database
                 def format_date_for_db(date_str):
                     date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    return date_obj.strftime('%A, %B %02d, %Y')
+                    return date_obj.strftime('%A, %B ') + f'{date_obj.day:02d}, ' + date_obj.strftime('%Y')
                 
                 # Generate all dates in the range
                 start_dt = datetime.strptime(start_date, '%Y-%m-%d')
@@ -598,7 +598,7 @@ def api_brand_product_breakdown():
                 # Convert dates to the format used in the database
                 def format_date_for_db(date_str):
                     date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    return date_obj.strftime('%A, %B %02d, %Y')
+                    return date_obj.strftime('%A, %B ') + f'{date_obj.day:02d}, ' + date_obj.strftime('%Y')
                 
                 # Generate all dates in the range
                 start_dt = datetime.strptime(start_date, '%Y-%m-%d')
