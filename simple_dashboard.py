@@ -232,26 +232,58 @@ def get_inventory_summary(start_date=None, end_date=None):
             
             # Add date filtering if provided
             if start_date and end_date:
-                # Convert dates to the format used in the database
-                def format_date_for_db(date_str):
-                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    return date_obj.strftime('%A, %B ') + f'{date_obj.day:02d}, ' + date_obj.strftime('%Y')
+                # Use a more intelligent date filtering approach
+                # First, get all actual dates that exist in the database for this brand
+                date_check_query = f"""
+                SELECT DISTINCT "Dates" 
+                FROM campaign_metadata.{table} 
+                WHERE "ID" >= 8000 
+                    AND "Dates" LIKE '%2025%'
+                ORDER BY "Dates"
+                """
                 
-                # Generate all dates in the range
-                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-                
-                date_conditions = []
-                current_date = start_dt
-                while current_date <= end_dt:
-                    formatted_date = format_date_for_db(current_date.strftime('%Y-%m-%d'))
-                    date_conditions.append(f'"Dates" = \'{formatted_date}\'')
-                    current_date = current_date.replace(day=current_date.day + 1)
-                
-                if date_conditions:
-                    date_where_clause = ' OR '.join(date_conditions)
-                    query = f"{base_query} AND ({date_where_clause})"
-                else:
+                try:
+                    cursor.execute(date_check_query)
+                    all_dates = [row[0] for row in cursor.fetchall()]
+                    
+                    # Filter dates that fall within the requested range
+                    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                    
+                    filtered_dates = []
+                    for date_str in all_dates:
+                        try:
+                            # Parse the date string from database format
+                            date_parts = date_str.split(', ')
+                            if len(date_parts) >= 3:
+                                month_day_year = date_parts[1].split(' ')
+                                if len(month_day_year) >= 3:
+                                    month = month_day_year[0]
+                                    day = int(month_day_year[1])
+                                    year = int(month_day_year[2])
+                                    
+                                    # Convert month name to number
+                                    month_num = datetime.strptime(month, '%B').month
+                                    
+                                    # Create date object
+                                    db_date = datetime(year, month_num, day)
+                                    
+                                    # Check if date falls within range
+                                    if start_dt <= db_date <= end_dt:
+                                        filtered_dates.append(date_str)
+                        except:
+                            continue
+                    
+                    if filtered_dates:
+                        # Create date conditions for the actual dates that exist
+                        date_conditions = [f'"Dates" = \'{date}\'' for date in filtered_dates]
+                        date_where_clause = ' OR '.join(date_conditions)
+                        query = f"{base_query} AND ({date_where_clause})"
+                    else:
+                        # No dates found in range, return empty result
+                        query = f"{base_query} AND 1=0"
+                except Exception as e:
+                    print(f"Error getting dates for {table}: {e}")
                     query = base_query
             else:
                 query = base_query
@@ -595,26 +627,58 @@ def api_brand_product_breakdown():
             
             # Add date filtering if provided
             if start_date and end_date:
-                # Convert dates to the format used in the database
-                def format_date_for_db(date_str):
-                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    return date_obj.strftime('%A, %B ') + f'{date_obj.day:02d}, ' + date_obj.strftime('%Y')
+                # Use a more intelligent date filtering approach
+                # First, get all actual dates that exist in the database for this brand
+                date_check_query = f"""
+                SELECT DISTINCT "Dates" 
+                FROM campaign_metadata.{table} 
+                WHERE "ID" >= 8000 
+                    AND "Dates" LIKE '%2025%'
+                ORDER BY "Dates"
+                """
                 
-                # Generate all dates in the range
-                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-                
-                date_conditions = []
-                current_date = start_dt
-                while current_date <= end_dt:
-                    formatted_date = format_date_for_db(current_date.strftime('%Y-%m-%d'))
-                    date_conditions.append(f'inv."Dates" = \'{formatted_date}\'')
-                    current_date = current_date.replace(day=current_date.day + 1)
-                
-                if date_conditions:
-                    date_where_clause = ' OR '.join(date_conditions)
-                    query = f"{base_query} AND ({date_where_clause}) GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
-                else:
+                try:
+                    cursor.execute(date_check_query)
+                    all_dates = [row[0] for row in cursor.fetchall()]
+                    
+                    # Filter dates that fall within the requested range
+                    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                    
+                    filtered_dates = []
+                    for date_str in all_dates:
+                        try:
+                            # Parse the date string from database format
+                            date_parts = date_str.split(', ')
+                            if len(date_parts) >= 3:
+                                month_day_year = date_parts[1].split(' ')
+                                if len(month_day_year) >= 3:
+                                    month = month_day_year[0]
+                                    day = int(month_day_year[1])
+                                    year = int(month_day_year[2])
+                                    
+                                    # Convert month name to number
+                                    month_num = datetime.strptime(month, '%B').month
+                                    
+                                    # Create date object
+                                    db_date = datetime(year, month_num, day)
+                                    
+                                    # Check if date falls within range
+                                    if start_dt <= db_date <= end_dt:
+                                        filtered_dates.append(date_str)
+                        except:
+                            continue
+                    
+                    if filtered_dates:
+                        # Create date conditions for the actual dates that exist
+                        date_conditions = [f'inv."Dates" = \'{date}\'' for date in filtered_dates]
+                        date_where_clause = ' OR '.join(date_conditions)
+                        query = f"{base_query} AND ({date_where_clause}) GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
+                    else:
+                        # No dates found in range, return empty result
+                        query = f"{base_query} AND 1=0 GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
+                except Exception as e:
+                    print(f"Error getting dates for {table}: {e}")
                     query = f"{base_query} GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
             else:
                 query = f"{base_query} GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
