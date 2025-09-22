@@ -390,8 +390,8 @@
             
             // Handle different data formats
             if (Array.isArray(data)) {
-                // Check if this is API response format (has total_slots, booked, etc.) or fallback format
-                if (data.length > 0 && data[0].hasOwnProperty('total_slots')) {
+                // Check if this is API response format (has total, booked, etc.) or fallback format
+                if (data.length > 0 && data[0].hasOwnProperty('total')) {
                     // If data is an array (from updated brand-overview API), process it
                     console.log('Processing array data from brand-overview API');
                     
