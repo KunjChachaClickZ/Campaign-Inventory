@@ -851,7 +851,26 @@
                 
                 const data = await response.json();
                 console.log('Weekly comparison API response:', data);
-                updateWeeklyView(data, weekRange);
+                
+                // Transform API response to expected format
+                const transformedData = {
+                    summary: {
+                        total_scheduled: data.data.reduce((sum, brand) => sum + brand.scheduled, 0),
+                        total_form_submissions: data.data.reduce((sum, brand) => sum + brand.form_submissions, 0)
+                    },
+                    by_brand: {}
+                };
+                
+                // Transform brand data
+                data.data.forEach(brand => {
+                    transformedData.by_brand[brand.brand] = {
+                        scheduled: brand.scheduled,
+                        form_submissions: brand.form_submissions
+                    };
+                });
+                
+                console.log('Transformed data:', transformedData);
+                updateWeeklyView(transformedData, weekRange);
             } catch (error) {
                 console.error('Error fetching weekly comparison:', error);
                 updateWeeklyViewError(weekRange);
