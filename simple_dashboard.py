@@ -257,10 +257,10 @@ def get_inventory_summary(start_date=None, end_date=None):
                             date_parts = date_str.split(', ')
                             if len(date_parts) >= 3:
                                 month_day_year = date_parts[1].split(' ')
-                                if len(month_day_year) >= 3:
+                                year = int(date_parts[2])
+                                if len(month_day_year) >= 2:
                                     month = month_day_year[0]
                                     day = int(month_day_year[1])
-                                    year = int(month_day_year[2])
                                     
                                     # Convert month name to number
                                     month_num = datetime.strptime(month, '%B').month
@@ -282,7 +282,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                     else:
                         # No dates found in range, return empty result
                         query = f"{base_query} AND 1=0"
-                except Exception as e:
+    except Exception as e:
                     print(f"Error getting dates for {table}: {e}")
                     query = base_query
             else:
@@ -317,7 +317,7 @@ def get_inventory_summary(start_date=None, end_date=None):
         
         cursor.close()
         conn.close()
-
+        
         return summary
         
     except Exception as e:
@@ -652,10 +652,10 @@ def api_brand_product_breakdown():
                             date_parts = date_str.split(', ')
                             if len(date_parts) >= 3:
                                 month_day_year = date_parts[1].split(' ')
-                                if len(month_day_year) >= 3:
+                                year = int(date_parts[2])
+                                if len(month_day_year) >= 2:
                                     month = month_day_year[0]
                                     day = int(month_day_year[1])
-                                    year = int(month_day_year[2])
                                     
                                     # Convert month name to number
                                     month_num = datetime.strptime(month, '%B').month
