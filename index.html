@@ -330,10 +330,11 @@
                         if (brands.includes(brand)) {
                             brandStats[brand] = {
                                 name: brandData.name || brandNames[brand] || brand,
-                                total: brandData.total_slots || 0,
+                                total: brandData.total || 0,
                                 booked: brandData.booked || 0,
                                 percentage: brandData.percentage || 0
                             };
+                            console.log(`Processed brand ${brand}:`, brandStats[brand]);
                         }
                     });
                 } else {
@@ -412,6 +413,7 @@
             // Create clean, professional overview cards
             overviewSection.innerHTML = brands.map(brand => {
                 const stats = brandStats[brand];
+                console.log(`Generating HTML for brand ${brand}:`, stats);
                 
                 // Handle missing brand data
                 if (!stats) {
