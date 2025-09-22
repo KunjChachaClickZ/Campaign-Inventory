@@ -267,12 +267,56 @@ def get_inventory_summary(start_date=None, end_date=None):
                     # Use the hardcoded dates for April-September 2025
                     date_conditions = [f'"Dates" = \'{date}\'' for date in april_september_2025_dates]
                     date_where_clause = ' OR '.join(date_conditions)
-                    query = f"{base_query} AND ({date_where_clause})"
+                    
+                    # Add logic to handle duplicate slot IDs by taking the latest updated slot
+                    # Use a subquery to get only the latest updated slot for each ID
+                    query = f"""
+                    WITH latest_slots AS (
+                        SELECT DISTINCT ON ("ID") *
+                        FROM campaign_metadata.{table}
+                        WHERE "ID" >= 8000
+                        ORDER BY "ID", last_updated DESC
+                    )
+                    SELECT 
+                        COUNT(*) as total,
+                        COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
+                        COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
+                        COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
+                    FROM latest_slots
+                    WHERE ({date_where_clause})
+                    """
                 else:
-                    # For other date ranges, use the original logic
-                    query = base_query
+                    # For other date ranges, use the original logic with duplicate handling
+                    query = f"""
+                    WITH latest_slots AS (
+                        SELECT DISTINCT ON ("ID") *
+                        FROM campaign_metadata.{table}
+                        WHERE "ID" >= 8000
+                        ORDER BY "ID", last_updated DESC
+                    )
+                    SELECT 
+                        COUNT(*) as total,
+                        COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
+                        COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
+                        COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
+                    FROM latest_slots
+                    """
             else:
-                query = base_query
+                # For no date filtering, still handle duplicates
+                query = f"""
+                WITH latest_slots AS (
+                    SELECT DISTINCT ON ("ID") *
+                    FROM campaign_metadata.{table}
+                    WHERE "ID" >= 8000
+                    ORDER BY "ID", last_updated DESC
+                )
+                SELECT 
+                    COUNT(*) as total,
+                    COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
+                    COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
+                    COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
+                FROM latest_slots
+                """
             
             try:
         cursor.execute(query)
@@ -648,12 +692,64 @@ def api_brand_product_breakdown():
                     # Use the hardcoded dates for April-September 2025
                     date_conditions = [f'inv."Dates" = \'{date}\'' for date in april_september_2025_dates]
                     date_where_clause = ' OR '.join(date_conditions)
-                    query = f"{base_query} AND ({date_where_clause}) GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
+                    
+                    # Add logic to handle duplicate slot IDs by taking the latest updated slot
+                    query = f"""
+                    WITH latest_slots AS (
+                        SELECT DISTINCT ON ("ID") *
+                        FROM campaign_metadata.{table}
+                        WHERE "ID" >= 8000
+                        ORDER BY "ID", last_updated DESC
+                    )
+                    SELECT 
+                        inv."Media_Asset" as product,
+                        COUNT(*) as total_slots,
+                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
+                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
+                        COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
+                    FROM latest_slots inv
+                    WHERE ({date_where_clause})
+                    GROUP BY inv."Media_Asset" 
+                    ORDER BY total_slots DESC
+                    """
                 else:
-                    # For other date ranges, use the original logic
-                    query = f"{base_query} GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
+                    # For other date ranges, use the original logic with duplicate handling
+                    query = f"""
+                    WITH latest_slots AS (
+                        SELECT DISTINCT ON ("ID") *
+                        FROM campaign_metadata.{table}
+                        WHERE "ID" >= 8000
+                        ORDER BY "ID", last_updated DESC
+                    )
+                    SELECT 
+                        inv."Media_Asset" as product,
+                        COUNT(*) as total_slots,
+                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
+                        COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
+                        COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
+                    FROM latest_slots inv
+                    GROUP BY inv."Media_Asset" 
+                    ORDER BY total_slots DESC
+                    """
             else:
-                query = f"{base_query} GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
+                # For no date filtering, still handle duplicates
+                query = f"""
+                WITH latest_slots AS (
+                    SELECT DISTINCT ON ("ID") *
+                    FROM campaign_metadata.{table}
+                    WHERE "ID" >= 8000
+                    ORDER BY "ID", last_updated DESC
+                )
+                SELECT 
+                    inv."Media_Asset" as product,
+                    COUNT(*) as total_slots,
+                    COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
+                    COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
+                    COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
+                FROM latest_slots inv
+                GROUP BY inv."Media_Asset" 
+                ORDER BY total_slots DESC
+                """
                 
             try:
                 cursor.execute(query)
