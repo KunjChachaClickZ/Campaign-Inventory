@@ -203,9 +203,11 @@ def get_inventory_summary(start_date=None, end_date=None):
                 # Use dynamic date filtering
                 date_filter = build_date_filtered_query(table, start_date, end_date)
                 query = base_query + date_filter
+                print(f"DEBUG: Query with date filter for {table}: {query}")
             else:
                 # No date filtering
                 query = base_query
+                print(f"DEBUG: Query without date filter for {table}: {query}")
             
             try:
                 cursor.execute(query)
