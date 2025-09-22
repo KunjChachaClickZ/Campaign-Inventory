@@ -413,6 +413,7 @@
                                 name: brandData.name || brandNames[brand] || brand,
                                 total: brandData.total || 0,
                                 booked: brandData.booked || 0,
+                                available: brandData.available || 0,
                                 percentage: brandData.percentage || 0
                             };
                             console.log(`Processed brand ${brand}:`, brandStats[brand]);
@@ -532,7 +533,7 @@
                                 <div class="flex items-center justify-center gap-1">
                                     <span class="text-green-400">${stats.booked}</span>
                                     <span class="text-gray-500">/</span>
-                                    <span class="text-blue-400">${stats.total - stats.booked}</span>
+                                    <span class="text-blue-400">${stats.available || (stats.total - stats.booked)}</span>
                                 </div>
                                 <div class="text-xs text-gray-500 mt-1">
                                     <span class="text-green-400">Booked</span>
