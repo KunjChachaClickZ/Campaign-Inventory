@@ -807,10 +807,11 @@
 
         async function fetchWeeklyComparison(weekOffset = 0) {
             console.log('=== fetchWeeklyComparison called with weekOffset:', weekOffset, '===');
-            const weekRange = getWeekRange(weekOffset);
-            console.log('weekRange created:', weekRange);
             
             try {
+                const weekRange = getWeekRange(weekOffset);
+                console.log('weekRange created:', weekRange);
+                
                 console.log('Fetching weekly comparison for:', weekRange);
                 
                 // Add timeout for weekly view
@@ -844,7 +845,8 @@
                             },
                             by_brand: {}
                         };
-                        return data;
+                        updateWeeklyView(data, weekRange);
+                        return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -876,7 +878,7 @@
                 console.error('Error details:', error);
                 console.error('Error message:', error.message);
                 console.error('Error stack:', error.stack);
-                updateWeeklyViewError(weekRange);
+                updateWeeklyViewError();
             }
         }
 
