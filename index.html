@@ -806,7 +806,7 @@
         }
 
         async function fetchWeeklyComparison(weekOffset = 0) {
-            console.log('fetchWeeklyComparison called with weekOffset:', weekOffset);
+            console.log('=== fetchWeeklyComparison called with weekOffset:', weekOffset, '===');
             const weekRange = getWeekRange(weekOffset);
             console.log('weekRange created:', weekRange);
             
@@ -872,7 +872,10 @@
                 console.log('Transformed data:', transformedData);
                 updateWeeklyView(transformedData, weekRange);
             } catch (error) {
-                console.error('Error fetching weekly comparison:', error);
+                console.error('=== ERROR fetching weekly comparison ===');
+                console.error('Error details:', error);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
                 updateWeeklyViewError(weekRange);
             }
         }
