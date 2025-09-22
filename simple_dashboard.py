@@ -37,7 +37,7 @@ def get_db_connection():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         print("Database connection successful with psycopg2!")
-        return conn
+            return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         raise e
@@ -694,14 +694,14 @@ def api_brand_product_breakdown():
                     date_where_clause = ' OR '.join(date_conditions)
                     
                     # Add logic to handle duplicate slot IDs by taking the latest updated slot
-                    query = f"""
+                query = f"""
                     WITH latest_slots AS (
                         SELECT DISTINCT ON ("ID") *
                         FROM campaign_metadata.{table}
                         WHERE "ID" >= 8000
                         ORDER BY "ID", last_updated DESC
                     )
-                    SELECT 
+                SELECT 
                         inv."Media_Asset" as product,
                         COUNT(*) as total_slots,
                         COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
