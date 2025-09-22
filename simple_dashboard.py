@@ -317,7 +317,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-        SELECT 
+            SELECT 
                 COUNT(*) as total,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
@@ -357,7 +357,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                         'percentage': round((brand_booked / brand_total * 100) if brand_total > 0 else 0, 1)
                     }
                     
-    except Exception as e:
+            except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
                 continue
         
