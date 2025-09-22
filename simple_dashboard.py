@@ -1,10 +1,23 @@
 import os
-import psycopg2
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+import json
 from datetime import datetime, timedelta
-import requests
-import logging
+from flask import Flask, jsonify, request, render_template_string
+from flask_cors import CORS
+
+# Try to import psycopg2, fallback to psycopg if not available
+try:
+    import psycopg2
+    PSYCOPG_AVAILABLE = True
+    print("Using psycopg2 for PostgreSQL connection")
+except ImportError:
+    try:
+        import psycopg
+        psycopg2 = psycopg
+        PSYCOPG_AVAILABLE = True
+        print("Using psycopg for PostgreSQL connection")
+    except ImportError:
+        PSYCOPG_AVAILABLE = False
+        print("Neither psycopg2 nor psycopg available")
 
 app = Flask(__name__)
 CORS(app)
@@ -12,20 +25,11 @@ CORS(app)
 # Database configuration
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', '5432'),
-    'database': os.getenv('DB_NAME', 'campaign_metadata'),
+    'dbname': os.getenv('DB_NAME', 'campaign_metadata'),
     'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', 'password')
-}
-
-# Check if psycopg2 is available
-try:
-    import psycopg2
-    PSYCOPG_AVAILABLE = True
-    print("Using psycopg2 for PostgreSQL connection")
-except ImportError:
-    PSYCOPG_AVAILABLE = False
-    print("psycopg2 not available")
+    'password': os.getenv('DB_PASSWORD', 'password'),
+    'port': os.getenv('DB_PORT', '5432')
+    }
 
 def get_db_connection():
     """Get database connection"""
@@ -45,32 +49,29 @@ def create_cursor(conn):
     return conn.cursor()
 
 def detect_date_format(sample_dates):
-    """Detect the date format used in the database"""
+    """Detect date format from sample dates"""
     if not sample_dates:
         return None
-        
-    formats_to_try = [
+    
+    # Common date formats to try
+    formats = [
         '%A, %B %d, %Y',      # Monday, April 07, 2025
-        '%A, %B %d, %Y',      # Monday, April 7, 2025  
         '%Y-%m-%d',           # 2025-04-07
         '%m/%d/%Y',           # 04/07/2025
         '%d/%m/%Y',           # 07/04/2025
         '%B %d, %Y',          # April 07, 2025
-        '%d %B %Y',           # 07 April 2025
-        '%Y-%m-%d %H:%M:%S',  # 2025-04-07 00:00:00
-        '%Y-%m-%d %H:%M:%S.%f',  # 2025-04-07 00:00:00.000000
-        '%d-%m-%Y',           # 07-04-2025
-        '%m-%d-%Y',           # 04-07-2025
     ]
     
-    for date_format in formats_to_try:
-        try:
-            for sample_date in sample_dates:
-                datetime.strptime(str(sample_date), date_format)
-            print(f"Detected date format: {date_format}")
-            return date_format
-        except ValueError:
-            continue
+    for fmt in formats:
+        matches = 0
+        for date_str in sample_dates:
+            if safe_date_parsing(date_str, [fmt]):
+                matches += 1
+        
+        # If more than 50% of dates match this format, use it
+        if matches > len(sample_dates) * 0.5:
+            print(f"Detected date format: {fmt}")
+            return fmt
     
     print("Could not detect date format, using fallback")
     return None
@@ -85,18 +86,19 @@ def get_sample_dates_from_db(table_name, limit=10):
         SELECT DISTINCT "Dates" 
         FROM campaign_metadata.{table_name} 
         WHERE "Dates" IS NOT NULL 
-        LIMIT {limit}
+        AND "ID" >= 8000
+        LIMIT %s
         """
         
-        cursor.execute(query)
+        cursor.execute(query, (limit,))
         results = cursor.fetchall()
         sample_dates = [row[0] for row in results]
-        
+
         cursor.close()
         conn.close()
-        
+
         return sample_dates
-            except Exception as e:
+    except Exception as e:
         print(f"Error getting sample dates from {table_name}: {e}")
         return []
 
@@ -105,26 +107,15 @@ def generate_date_conditions(start_date, end_date, detected_format=None):
     date_conditions = []
     current_date = start_date
     
-    # Fallback formats if none detected
-    fallback_formats = [
-        '%A, %B %d, %Y',      # Monday, April 07, 2025
-        '%A, %B %d, %Y',      # Monday, April 7, 2025
-        '%Y-%m-%d',           # 2025-04-07
-        '%m/%d/%Y',           # 04/07/2025
-        '%d/%m/%Y',           # 07/04/2025
-        '%B %d, %Y',          # April 07, 2025
-    ]
-    
-    formats_to_use = [detected_format] if detected_format else fallback_formats
+    # Use the correct format for the database: "Monday, September 22, 2025"
+    target_format = '%A, %B %d, %Y'
     
     while current_date <= end_date:
-        for fmt in formats_to_use:
-            try:
-                formatted_date = current_date.strftime(fmt)
-                date_conditions.append(f'"Dates" = \'{formatted_date}\'')
-                break
-            except ValueError:
-                continue
+        try:
+            formatted_date = current_date.strftime(target_format)
+            date_conditions.append(f'"Dates" = \'{formatted_date}\'')
+        except ValueError:
+            print(f"Error formatting date {current_date}")
         current_date = current_date.replace(day=current_date.day + 1)
     
     return date_conditions
@@ -152,137 +143,14 @@ def build_date_filtered_query(table, start_date, end_date):
         return ""
 
 def safe_date_parsing(date_string, formats):
-    """Safely parse date with multiple format attempts"""
+    """Safely parse date string with multiple formats"""
     for fmt in formats:
         try:
-            return datetime.strptime(str(date_string), fmt)
+            datetime.strptime(date_string, fmt)
+            return True
         except ValueError:
             continue
-        return None
-    
-@app.route('/')
-def index():
-    """Serve the main dashboard page"""
-    try:
-        with open('index.html', 'r') as f:
-            return f.read()
-    except FileNotFoundError:
-        return "Dashboard file not found", 404
-
-@app.route('/api/inventory')
-def api_inventory():
-    """API endpoint for inventory data with filtering"""
-    try:
-        # Get query parameters
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        brand = request.args.get('brand')
-        client = request.args.get('client')
-        product = request.args.get('product')
-        limit = int(request.args.get('limit', 100))
-        
-        # Get filtered inventory data
-        inventory_data = get_filtered_inventory_slots(
-            start_date=start_date,
-            end_date=end_date,
-            brand=brand,
-            client=client,
-            product=product,
-            limit=limit
-        )
-        
-        return jsonify(inventory_data)
-        
-    except Exception as e:
-        print(f"Inventory API Error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-def get_filtered_inventory_slots(start_date=None, end_date=None, brand=None, client=None, product=None, limit=100):
-    """Get filtered inventory slots from all brand tables"""
-    try:
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
-        
-        # Define brand tables and their mappings
-        brand_tables = [
-            ('aa_inventory', 'AA'),
-            ('bob_inventory', 'BG'),
-            ('cfo_inventory', 'CFO'),
-            ('gt_inventory', 'GT'),
-            ('hrd_inventory', 'HRD'),
-            ('cz_inventory', 'CZ')
-        ]
-        
-        all_slots = []
-        
-        for table, brand_code in brand_tables:
-            # Skip if brand filter is specified and doesn't match
-            if brand and brand.upper() != brand_code:
-                    continue
-                
-            # Build base query
-            query = f"""
-            SELECT 
-                inv."ID",
-                inv."Dates",
-                inv."Booked/Not Booked",
-                inv."Media_Asset",
-                inv."Website_Name",
-                inv."Client",
-                inv."last_updated"
-            FROM campaign_metadata.{table} inv
-            WHERE inv."ID" >= 8000
-            """
-            
-            # Add date filtering if provided
-            if start_date and end_date:
-                # Use dynamic date filtering
-                date_filter = build_date_filtered_query(table, start_date, end_date)
-                query += date_filter
-            
-            # Add brand filter
-            if brand:
-                query += f" AND inv.\"Website_Name\" = '{brand_code}'"
-            
-            # Add client filter
-            if client:
-                query += f" AND inv.\"Client\" ILIKE '%{client}%'"
-            
-            # Add product filter
-            if product:
-                query += f" AND inv.\"Media_Asset\" ILIKE '%{product}%'"
-            
-            # Add ordering and limit
-            query += f" ORDER BY inv.\"last_updated\" DESC LIMIT {limit}"
-            
-            try:
-            cursor.execute(query)
-                results = cursor.fetchall()
-                
-                for row in results:
-                    slot_data = {
-                        'id': row[0],
-                        'date': row[1],
-                        'status': row[2],
-                        'product': row[3],
-                        'brand': row[4],
-                        'client': row[5],
-                        'last_updated': row[6].isoformat() if row[6] else None
-                    }
-                    all_slots.append(slot_data)
-                    
-                except Exception as e:
-                print(f"Error querying {table}: {e}")
-                    continue
-        
-        cursor.close()
-        conn.close()
-
-        return all_slots
-        
-    except Exception as e:
-        print(f"Error getting filtered inventory slots: {e}")
-        return []
+    return False
 
 def get_inventory_summary(start_date=None, end_date=None):
     """Get summary statistics for inventory with optional date filtering"""
@@ -357,13 +225,13 @@ def get_inventory_summary(start_date=None, end_date=None):
                         'percentage': round((brand_booked / brand_total * 100) if brand_total > 0 else 0, 1)
                     }
                     
-            except Exception as e:
+                except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
-                continue
+                    continue
         
         cursor.close()
         conn.close()
-        
+
         return summary
         
     except Exception as e:
@@ -376,175 +244,15 @@ def get_inventory_summary(start_date=None, end_date=None):
             'by_brand': {}
         }
 
-@app.route('/api/brand-overview')
-def api_brand_overview():
-    """API endpoint for brand overview data with optional date filtering"""
-    try:
-        # Get date range parameters
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        
-        # Get inventory summary with date filtering
-        summary = get_inventory_summary(start_date=start_date, end_date=end_date)
-        
-        # Format data for frontend
-        brand_data = []
-        for brand_code, data in summary['by_brand'].items():
-            brand_data.append({
-                'brand': brand_code,
-                'total': data['total'],
-                'booked': data['booked'],
-                'available': data['available'],
-                'on_hold': data['on_hold'],
-                'percentage': data['percentage']
-            })
-        
-        return jsonify(brand_data)
-        
-    except Exception as e:
-        print(f"Brand Overview API Error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/brand-product-breakdown')
-def api_brand_product_breakdown():
-    """API endpoint for brand-product breakdown data with optional date filtering"""
-    try:
-        # Get date range parameters
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-        
-        # Define brand tables and their mappings
-        brand_tables = [
-            ('aa_inventory', 'Accountancy Age'),
-            ('bob_inventory', 'Bobsguide'),
-            ('cfo_inventory', 'The CFO'),
-            ('gt_inventory', 'Global Treasurer'),
-            ('hrd_inventory', 'HRD Connect'),
-            ('cz_inventory', 'ClickZ')
-        ]
-        
-        breakdown_data = {}
-        
-        for table, brand_name in brand_tables:
-            brand_code = table.split('_')[0].upper()
-            if brand_code == 'BOB':
-                brand_code = 'BG'
-            
-            # Build base query with duplicate handling
-            base_query = f"""
-            WITH latest_slots AS (
-                SELECT DISTINCT ON ("ID") *
-                FROM campaign_metadata.{table}
-                WHERE "ID" >= 8000
-                ORDER BY "ID", last_updated DESC
-            )
-                SELECT 
-                inv."Media_Asset" as product,
-                COUNT(*) as total_slots,
-                COUNT(CASE WHEN inv."Booked/Not Booked" = 'Booked' THEN 1 END) as booked_slots,
-                COUNT(CASE WHEN inv."Booked/Not Booked" = 'Not Booked' THEN 1 END) as available_slots,
-                COUNT(CASE WHEN inv."Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold_slots
-            FROM latest_slots inv
-            """
-            
-            # Add date filtering if provided
-            if start_date and end_date:
-                # Use dynamic date filtering
-                date_filter = build_date_filtered_query(table, start_date, end_date)
-                query = base_query + date_filter + " GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
-            else:
-                # No date filtering
-                query = base_query + " GROUP BY inv.\"Media_Asset\" ORDER BY total_slots DESC"
-                
-            try:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                
-                products = {}
-                for row in results:
-                    product_name = row[0]
-                    total_slots = row[1]
-                    booked_slots = row[2]
-                    available_slots = row[3]
-                    on_hold_slots = row[4]
-                    
-                    products[product_name] = {
-                        'total_slots': total_slots,
-                        'booked_slots': booked_slots,
-                        'available_slots': available_slots,
-                        'on_hold_slots': on_hold_slots,
-                        'percentage': round((booked_slots / total_slots * 100) if total_slots > 0 else 0, 1)
-                    }
-                
-                breakdown_data[brand_name] = products
-                
-            except Exception as e:
-                print(f"Error querying {table} for product breakdown: {e}")
-                continue
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify(breakdown_data)
-        
-    except Exception as e:
-        print(f"Brand Product Breakdown API Error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/clients')
-def api_clients():
-    """API endpoint for client data"""
-    try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-        
-        # Get unique clients from all brand tables
-        brand_tables = ['aa_inventory', 'bob_inventory', 'cfo_inventory', 'gt_inventory', 'hrd_inventory', 'cz_inventory']
-        all_clients = set()
-        
-        for table in brand_tables:
-            query = f"""
-            SELECT DISTINCT "Client" 
-            FROM campaign_metadata.{table} 
-            WHERE "Client" IS NOT NULL AND "Client" != ''
-            """
-            
-            try:
-        cursor.execute(query)
-        results = cursor.fetchall()
-        for row in results:
-                    all_clients.add(row[0])
-            except Exception as e:
-                print(f"Error querying {table} for clients: {e}")
-                continue
-        
-        # Convert to list and sort
-        clients_list = sorted(list(all_clients))
-        
-        # Format for frontend
-        clients_data = [{"name": client} for client in clients_list]
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify(clients_data)
-        
-    except Exception as e:
-        print(f"Clients API Error: {e}")
-        return jsonify({"error": str(e)}), 500
-
 def get_form_submissions_for_week(start_date, end_date):
     """Get form submissions count for each brand for the given week from data_products.sponsorship_bookings_form_submissions"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-        
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
+    
         # Query the real form submissions table
         cursor.execute("""
-            SELECT 
+        SELECT 
                 brand,
                 COUNT(*) as form_count
             FROM data_products.sponsorship_bookings_form_submissions 
@@ -564,7 +272,7 @@ def get_form_submissions_for_week(start_date, end_date):
         
         cursor.close()
         conn.close()
-        
+
         # Ensure all brands have a value (default to 0 if not found)
         for brand_code in ['AA', 'BG', 'CFO', 'GT', 'HRD', 'CZ']:
             if brand_code not in form_submissions:
@@ -584,6 +292,147 @@ def get_form_submissions_for_week(start_date, end_date):
             'HRD': 9,
             'CZ': 11
         }
+
+@app.route('/')
+def index():
+    """Serve the main dashboard"""
+    try:
+        with open('index.html', 'r') as f:
+            content = f.read()
+        return content
+    except FileNotFoundError:
+        return "Dashboard file not found", 404
+
+@app.route('/api/inventory')
+def api_inventory():
+    """API endpoint for inventory data with filtering"""
+    try:
+        # Get query parameters
+        limit = request.args.get('limit', 100, type=int)
+        brand = request.args.get('brand')
+        status = request.args.get('status')
+        client = request.args.get('client')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Define brand tables
+        brand_tables = [
+            ('aa_inventory', 'AA'),
+            ('bob_inventory', 'BG'),
+            ('cfo_inventory', 'CFO'),
+            ('gt_inventory', 'GT'),
+            ('hrd_inventory', 'HRD'),
+            ('cz_inventory', 'CZ')
+        ]
+        
+        all_slots = []
+        
+        for table, brand_code in brand_tables:
+            # Skip if brand filter is specified and doesn't match
+            if brand and brand != brand_code:
+                continue
+            
+            # Build query with duplicate handling
+            base_query = f"""
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.{table}
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+        SELECT 
+                "ID",
+                "Website_Name",
+                "Booked/Not Booked",
+                "Dates",
+                "Client",
+                "Booking ID",
+                "Product",
+                "Price",
+                "last_updated"
+            FROM latest_slots
+            WHERE 1=1
+            """
+            
+            params = []
+            
+            # Add status filter
+            if status:
+                base_query += ' AND "Booked/Not Booked" = %s'
+                params.append(status)
+            
+            # Add client filter
+            if client:
+                base_query += ' AND "Client" ILIKE %s'
+                params.append(f'%{client}%')
+            
+            # Add date filter
+            if start_date and end_date:
+                date_filter = build_date_filtered_query(table, start_date, end_date)
+                base_query += date_filter
+            
+            base_query += f' ORDER BY "ID" LIMIT {limit}'
+            
+            try:
+                cursor.execute(base_query, params)
+                results = cursor.fetchall()
+                
+                for row in results:
+                    all_slots.append({
+                        'id': row[0],
+                        'website_name': row[1],
+                        'status': row[2],
+                        'dates': row[3],
+                        'client': row[4],
+                        'booking_id': row[5],
+                        'product': row[6],
+                        'price': row[7],
+                        'last_updated': row[8].isoformat() if row[8] else None,
+                        'brand': brand_code
+                    })
+                    
+    except Exception as e:
+                print(f"Error getting data from {table}: {e}")
+                continue
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(all_slots)
+        
+    except Exception as e:
+        print(f"Inventory API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/brand-overview')
+def api_brand_overview():
+    """API endpoint for brand overview data"""
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        summary = get_inventory_summary(start_date, end_date)
+        
+        # Format data for frontend
+        brand_data = []
+        for brand_code, data in summary['by_brand'].items():
+            brand_data.append({
+                'brand': brand_code,
+                'total': data['total'],
+                'booked': data['booked'],
+                'available': data['available'],
+                'on_hold': data['on_hold'],
+                'percentage': data['percentage']
+            })
+        
+        return jsonify(brand_data)
+        
+    except Exception as e:
+        print(f"Brand Overview API Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/weekly-comparison')
 def api_weekly_comparison():
@@ -625,5 +474,134 @@ def api_weekly_comparison():
         print(f"Weekly Comparison API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/brand-product-breakdown')
+def api_brand_product_breakdown():
+    """API endpoint for brand product breakdown"""
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Define brand tables
+        brand_tables = [
+            ('aa_inventory', 'AA'),
+            ('bob_inventory', 'BG'),
+            ('cfo_inventory', 'CFO'),
+            ('gt_inventory', 'GT'),
+            ('hrd_inventory', 'HRD'),
+            ('cz_inventory', 'CZ')
+        ]
+        
+        breakdown_data = {}
+        
+        for table, brand_code in brand_tables:
+            # Build query with duplicate handling
+            base_query = f"""
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.{table}
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+                SELECT 
+                "Product",
+                COUNT(*) as total,
+                COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
+                COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
+                COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
+            FROM latest_slots
+            WHERE "Product" IS NOT NULL
+            """
+            
+            # Add date filtering if provided
+            if start_date and end_date:
+                date_filter = build_date_filtered_query(table, start_date, end_date)
+                query = base_query + date_filter + ' GROUP BY "Product" ORDER BY total DESC'
+            else:
+                query = base_query + ' GROUP BY "Product" ORDER BY total DESC'
+            
+            try:
+                cursor.execute(query)
+                results = cursor.fetchall()
+                
+                products = []
+                for row in results:
+                    products.append({
+                        'product': row[0],
+                        'total': row[1],
+                        'booked': row[2],
+                        'available': row[3],
+                        'on_hold': row[4]
+                    })
+                
+                breakdown_data[brand_code] = products
+                
+            except Exception as e:
+                print(f"Error getting product breakdown for {table}: {e}")
+                breakdown_data[brand_code] = []
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(breakdown_data)
+        
+    except Exception as e:
+        print(f"Brand Product Breakdown API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/clients')
+def api_clients():
+    """API endpoint for client data"""
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Define brand tables
+        brand_tables = [
+            ('aa_inventory', 'AA'),
+            ('bob_inventory', 'BG'),
+            ('cfo_inventory', 'CFO'),
+            ('gt_inventory', 'GT'),
+            ('hrd_inventory', 'HRD'),
+            ('cz_inventory', 'CZ')
+        ]
+        
+        all_clients = set()
+        
+        for table, brand_code in brand_tables:
+            query = f"""
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.{table}
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+            SELECT DISTINCT "Client"
+            FROM latest_slots
+            WHERE "Client" IS NOT NULL AND "Client" != ''
+            """
+            
+            try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        for row in results:
+                    all_clients.add(row[0])
+                    
+            except Exception as e:
+                print(f"Error getting clients from {table}: {e}")
+                continue
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(sorted(list(all_clients)))
+        
+    except Exception as e:
+        print(f"Clients API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5005)
+    app.run(debug=True, host='0.0.0.0', port=5000)
