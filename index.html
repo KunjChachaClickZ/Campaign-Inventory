@@ -28,14 +28,39 @@
 
         <!-- Brand Overview Section - Full Width -->
         <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4 gap-4">
                 <h2 class="text-lg font-bold text-white">Brand Performance Overview</h2>
-                <button onclick="openProductBreakdownModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 transition-colors">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                    View All
-                </button>
+                
+                <!-- Date Range Filters -->
+                <div class="flex flex-col sm:flex-row gap-3 items-end">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1">From Date</label>
+                            <input type="date" id="brandOverviewStartDate" class="bg-gray-700 border border-gray-600 text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="2025-04-01">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1">To Date</label>
+                            <input type="date" id="brandOverviewEndDate" class="bg-gray-700 border border-gray-600 text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="2025-09-30">
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="applyBrandOverviewDateFilter()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs flex items-center gap-1 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                            </svg>
+                            Apply Filter
+                        </button>
+                        <button onclick="clearBrandOverviewDateFilter()" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-xs transition-colors">
+                            Clear
+                        </button>
+                        <button onclick="openProductBreakdownModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs flex items-center gap-1 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            View All
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="overviewSection">
                 <!-- Skeleton loading cards -->
@@ -285,6 +310,62 @@
                 console.error('Error loading brand overview:', error);
                 showError('Failed to load brand overview data. Please refresh the page.');
             }
+        }
+        
+        // Brand Overview Date Filter Functions
+        async function applyBrandOverviewDateFilter() {
+            const startDate = document.getElementById('brandOverviewStartDate').value;
+            const endDate = document.getElementById('brandOverviewEndDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('Start date cannot be after end date');
+                return;
+            }
+            
+            console.log('Applying brand overview date filter:', { startDate, endDate });
+            
+            try {
+                // Show loading state
+                const overviewSection = document.getElementById('overviewSection');
+                overviewSection.innerHTML = '<div class="col-span-6 text-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div><div class="mt-2 text-gray-400">Loading filtered data...</div></div>';
+                
+                // Fetch filtered data
+                const response = await fetch(`${API_BASE}/brand-overview?start_date=${startDate}&end_date=${endDate}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Filtered brand overview data received:', data);
+                
+                // Update the overview section with filtered data
+                updateOverviewSection(data);
+                
+                // Store current date range for product breakdown modal
+                window.currentBrandOverviewDateRange = { startDate, endDate };
+                
+            } catch (error) {
+                console.error('Error fetching filtered brand overview data:', error);
+                showError('Failed to load filtered brand overview data. Please try again.');
+            }
+        }
+        
+        function clearBrandOverviewDateFilter() {
+            // Reset to default dates (April 2025 to September 2025)
+            document.getElementById('brandOverviewStartDate').value = '2025-04-01';
+            document.getElementById('brandOverviewEndDate').value = '2025-09-30';
+            
+            // Reload the original data
+            loadBrandOverview();
+            
+            // Clear stored date range
+            window.currentBrandOverviewDateRange = null;
         }
         
         // Update overview section
@@ -1195,8 +1276,16 @@
             try {
                 showModalLoading();
                 
+                // Build URL with date range if available
+                let url = `${API_BASE}${API_ENDPOINTS.productBreakdown}`;
+                if (window.currentBrandOverviewDateRange) {
+                    const { startDate, endDate } = window.currentBrandOverviewDateRange;
+                    url += `?start_date=${startDate}&end_date=${endDate}`;
+                    console.log('Fetching breakdown data with date range:', { startDate, endDate });
+                }
+                
                 // Try the actual API endpoint first
-                const response = await fetch(`${API_BASE}${API_ENDPOINTS.productBreakdown}`);
+                const response = await fetch(url);
                 
                 if (response.ok) {
                     const data = await response.json();
