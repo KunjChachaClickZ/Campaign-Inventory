@@ -200,35 +200,35 @@ def get_inventory_summary(start_date=None, end_date=None):
     conn = get_db_connection()
     cursor = create_cursor(conn)
     
-        # Define brand tables
-        brand_tables = [
-            ('aa_inventory', 'AA'),
-            ('bob_inventory', 'BG'),
-            ('cfo_inventory', 'CFO'),
-            ('gt_inventory', 'GT'),
-            ('hrd_inventory', 'HRD'),
-            ('cz_inventory', 'CZ')
-        ]
-        
-        summary = {
-            'total_slots': 0,
-            'booked': 0,
-            'available': 0,
-            'on_hold': 0,
-            'by_brand': {}
-        }
-        
-        for table, brand_code in brand_tables:
-            # Build base query
-            base_query = f"""
+    # Define brand tables
+    brand_tables = [
+        ('aa_inventory', 'AA'),
+        ('bob_inventory', 'BG'),
+        ('cfo_inventory', 'CFO'),
+        ('gt_inventory', 'GT'),
+        ('hrd_inventory', 'HRD'),
+        ('cz_inventory', 'CZ')
+    ]
+    
+    summary = {
+        'total_slots': 0,
+        'booked': 0,
+        'available': 0,
+        'on_hold': 0,
+        'by_brand': {}
+    }
+    
+    for table, brand_code in brand_tables:
+        # Build base query
+        base_query = f"""
         SELECT 
-                COUNT(*) as total,
-                COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
-                COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
-                COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
-            FROM campaign_metadata.{table}
-            WHERE "ID" >= 8000
-            """
+            COUNT(*) as total,
+            COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
+            COUNT(CASE WHEN "Booked/Not Booked" = 'Not Booked' THEN 1 END) as available,
+            COUNT(CASE WHEN "Booked/Not Booked" IN ('Hold', 'Hold ', 'hold', 'On hold') THEN 1 END) as on_hold
+        FROM campaign_metadata.{table}
+        WHERE "ID" >= 8000
+        """
             
             # Add date filtering if provided
             if start_date and end_date:
