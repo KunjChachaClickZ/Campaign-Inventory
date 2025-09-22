@@ -132,9 +132,13 @@ def build_date_filtered_query(table, start_date, end_date):
         end_dt = datetime.strptime(end_date, '%Y-%m-%d')
         date_conditions = generate_date_conditions(start_dt, end_dt, detected_format)
         
+        print(f"DEBUG: Date conditions for {table}: {date_conditions}")
+        
         if date_conditions:
             date_where_clause = ' OR '.join(date_conditions)
-            return f" AND ({date_where_clause})"
+            result = f" AND ({date_where_clause})"
+            print(f"DEBUG: Generated date filter for {table}: {result}")
+            return result
         else:
             print(f"Warning: No date conditions generated for {table}")
             return ""
