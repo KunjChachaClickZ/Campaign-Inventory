@@ -87,6 +87,7 @@ def get_sample_dates_from_db(table_name, limit=10):
         FROM campaign_metadata.{table_name} 
         WHERE "Dates" IS NOT NULL 
         AND "ID" >= 8000
+        AND "Dates" LIKE '%, %%, %'
         LIMIT %s
         """
         
