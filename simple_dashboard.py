@@ -397,6 +397,7 @@ def api_inventory():
                 continue
 
             # Build query WITH JOIN to get client names
+            # First, test without JOIN to see if basic query works
             base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
@@ -404,7 +405,7 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-            SELECT
+        SELECT 
                 inv."ID",
                 inv."Website_Name",
                 inv."Booked/Not Booked",
@@ -417,11 +418,11 @@ def api_inventory():
             FROM latest_slots inv
             LEFT JOIN campaign_metadata.campaign_ledger cl 
                 ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = '{brand_code}'
+                AND cl."Brand" = %s
             WHERE 1=1
             """
 
-            params = []
+            params = [brand_code]  # Add brand_code as first param for JOIN
 
             # Add status filter
             if status:
@@ -506,7 +507,7 @@ def api_inventory():
                         continue
 
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
-            except Exception as e:
+    except Exception as e:
                 print(f"ERROR getting data from {table}: {e}")
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
