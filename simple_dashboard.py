@@ -176,9 +176,9 @@ def build_date_filtered_query(table, start_date, end_date, use_alias=False):
             # If using alias (after JOIN), prefix with inv.
             if use_alias:
                 date_conditions = [
-    cond.replace(
-        '"Dates"',
-         'inv."Dates"') for cond in date_conditions]
+                    cond.replace(
+                        '"Dates"',
+                        'inv."Dates"') for cond in date_conditions]
             date_where_clause = ' OR '.join(date_conditions)
             result = f" AND ({date_where_clause})"
             print(f"DEBUG: Generated date filter for {table}: {result}")
@@ -256,33 +256,33 @@ def get_inventory_summary(start_date=None, end_date=None):
                 print(f"DEBUG: Query without date filter for {table}: {query}")
 
             try:
-            cursor.execute(query)
+                cursor.execute(query)
                 result = cursor.fetchone()
 
-                if result:
-                    brand_total = result[0]
-                    brand_booked = result[1]
-                    brand_available = result[2]
-                    brand_on_hold = result[3]
+            if result:
+                brand_total = result[0]
+                brand_booked = result[1]
+                brand_available = result[2]
+                brand_on_hold = result[3]
 
-                    summary['total_slots'] += brand_total
-                    summary['booked'] += brand_booked
-                    summary['available'] += brand_available
-                    summary['on_hold'] += brand_on_hold
+                summary['total_slots'] += brand_total
+                summary['booked'] += brand_booked
+                summary['available'] += brand_available
+                summary['on_hold'] += brand_on_hold
 
-                    summary['by_brand'][brand_code] = {
-                        'total': brand_total,
-                        'booked': brand_booked,
-                        'available': brand_available,
-                        'on_hold': brand_on_hold,
-                        'percentage': round(
-                            (brand_booked / brand_total *
-                             100) if brand_total > 0 else 0,
-                            1)
-                    }
+                summary['by_brand'][brand_code] = {
+                    'total': brand_total,
+                    'booked': brand_booked,
+                    'available': brand_available,
+                    'on_hold': brand_on_hold,
+                    'percentage': round(
+                        (brand_booked / brand_total *
+                         100) if brand_total > 0 else 0,
+                        1)
+                }
                 except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
-                    continue
+                continue
 
         cursor.close()
         conn.close()
@@ -306,8 +306,8 @@ def get_form_submissions_for_week(start_date, end_date):
     conn = get_db_connection()
     cursor = create_cursor(conn)
 
-        # Query the real form submissions table
-        cursor.execute("""
+    # Query the real form submissions table
+    cursor.execute("""
         SELECT
                 brand,
                 COUNT(*) as form_count
@@ -318,11 +318,11 @@ def get_form_submissions_for_week(start_date, end_date):
             GROUP BY brand
         """, (start_date, end_date))
 
-        results = cursor.fetchall()
-        form_submissions = {}
+    results = cursor.fetchall()
+    form_submissions = {}
 
-        for row in results:
-            form_submissions[row[0]] = row[1]
+    for row in results:
+        form_submissions[row[0]] = row[1]
 
         print(
             f"Found form submissions from data_products.sponsorship_bookings_form_submissions: {form_submissions}")
@@ -466,10 +466,10 @@ def api_inventory():
                     })
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
     except Exception as e:
-                print(f"ERROR getting data from {table}: {e}")
-                import traceback
-                print(f"ERROR traceback: {traceback.format_exc()}")
-                continue
+        print(f"ERROR getting data from {table}: {e}")
+        import traceback
+        print(f"ERROR traceback: {traceback.format_exc()}")
+        continue
 
         cursor.close()
         conn.close()
@@ -764,11 +764,11 @@ def api_clients():
                 print(f"DEBUG: Executing clients query for {table} (brand: {brand_code})")
         cursor.execute(query)
         results = cursor.fetchall()
-                print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
+        print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
         
         for row in results:
-                    all_clients.add(row[0])
-                print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
+            all_clients.add(row[0])
+            print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
             except Exception as e:
                 print(f"ERROR getting clients from {table}: {e}")
                 import traceback
