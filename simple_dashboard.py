@@ -664,20 +664,26 @@ def api_debug_test_query():
         """)
         test_results['select_query_rows'] = len(cursor.fetchall())
         
-        # Test 4: Clients query
+        # Test 4: Check actual column names
         cursor.execute("""
-            WITH latest_slots AS (
-                SELECT DISTINCT ON ("ID") *
-                FROM campaign_metadata.aa_inventory
-                WHERE "ID" >= 8000
-                ORDER BY "ID", last_updated DESC
-            )
-            SELECT DISTINCT "Client"
-            FROM latest_slots
-            WHERE "Client" IS NOT NULL AND "Client" != ''
-            LIMIT 5
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_schema = 'campaign_metadata' 
+            AND table_name = 'aa_inventory'
+            AND column_name ILIKE '%client%'
         """)
-        test_results['clients_query_rows'] = len(cursor.fetchall())
+        client_columns = [row[0] for row in cursor.fetchall()]
+        test_results['client_columns_found'] = client_columns
+        
+        # Test 5: Get sample data to see structure
+        cursor.execute("""
+            SELECT * FROM campaign_metadata.aa_inventory 
+            WHERE "ID" >= 8000 
+            LIMIT 1
+        """)
+        if cursor.rowcount > 0:
+            colnames = [desc[0] for desc in cursor.description]
+            test_results['sample_columns'] = colnames[:10]  # First 10 columns
         
         cursor.close()
         conn.close()
