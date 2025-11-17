@@ -467,9 +467,9 @@ def api_inventory():
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
             except Exception as e:
                 print(f"ERROR getting data from {table}: {e}")
-        import traceback
-        print(f"ERROR traceback: {traceback.format_exc()}")
-        continue
+                import traceback
+                print(f"ERROR traceback: {traceback.format_exc()}")
+                continue
 
         cursor.close()
         conn.close()
