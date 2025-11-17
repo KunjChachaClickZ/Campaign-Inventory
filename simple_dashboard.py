@@ -50,9 +50,9 @@ def get_db_connection():
                 # Real psycopg2 - needs 'database'
                 if 'dbname' in config:
                     config['database'] = config.pop('dbname')
-        else:
-            # Likely psycopg aliased as psycopg2 - needs 'dbname'
-            pass
+            else:
+                # Likely psycopg aliased as psycopg2 - needs 'dbname'
+                pass
         except:
             pass
 
