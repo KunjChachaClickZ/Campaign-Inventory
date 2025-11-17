@@ -125,8 +125,8 @@ def get_sample_dates_from_db(table_name, limit=10):
         LIMIT %s
         """
 
-    cursor.execute(query, (limit,))
-    results = cursor.fetchall()
+        cursor.execute(query, (limit,))
+        results = cursor.fetchall()
     sample_dates = [row[0] for row in results]
 
     cursor.close()
