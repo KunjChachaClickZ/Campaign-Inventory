@@ -476,8 +476,7 @@ def api_inventory():
                     import traceback
                     print(f"DEBUG: Query error traceback: {traceback.format_exc()}")
                     print(f"DEBUG: Query was: {base_query[:1000]}...")  # Print first 1000 chars
-                    # Don't continue - raise the error so we can see it
-                    raise
+                    continue
 
                 if results:
                     print(f"DEBUG: First result sample: {results[0]}")
@@ -507,7 +506,7 @@ def api_inventory():
                         continue
 
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
-    except Exception as e:
+            except Exception as e:
                 print(f"ERROR getting data from {table}: {e}")
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
