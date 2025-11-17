@@ -473,10 +473,10 @@ def api_inventory():
 
         cursor.close()
         conn.close()
-        
+
         print(f"DEBUG: Inventory API returning {len(all_slots)} total slots")
         return jsonify(all_slots)
-        
+
     except Exception as e:
         print(f"Inventory API Error: {e}")
         import traceback
@@ -490,7 +490,7 @@ def api_brand_overview():
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        
+
         summary = get_inventory_summary(start_date, end_date)
 
         # Format data for frontend
@@ -562,7 +562,7 @@ def api_brand_product_breakdown():
 
         conn = get_db_connection()
         cursor = create_cursor(conn)
-        
+
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -572,9 +572,9 @@ def api_brand_product_breakdown():
             ('hrd_inventory', 'HRD'),
             ('cz_inventory', 'CZ')
         ]
-        
+
         breakdown_data = {}
-        
+
         for table, brand_code in brand_tables:
             # Build query with duplicate handling
             base_query = f"""
@@ -617,16 +617,16 @@ def api_brand_product_breakdown():
                     })
 
                 breakdown_data[brand_code] = products
-                
+
             except Exception as e:
                 print(f"Error getting product breakdown for {table}: {e}")
                 breakdown_data[brand_code] = []
-        
+
         cursor.close()
         conn.close()
-        
+
         return jsonify(breakdown_data)
-        
+
     except Exception as e:
         print(f"Brand Product Breakdown API Error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -638,10 +638,10 @@ def api_debug_test_query():
     try:
         conn = get_db_connection()
         cursor = create_cursor(conn)
-        
+
         # Test simple query first
         test_results = {}
-        
+
         # Test 1: Simple count query (like brand-overview)
         cursor.execute("""
             SELECT COUNT(*) 
@@ -649,7 +649,7 @@ def api_debug_test_query():
             WHERE "ID" >= 8000
         """)
         test_results['simple_count'] = cursor.fetchone()[0]
-        
+
         # Test 2: CTE query (like inventory endpoint)
         cursor.execute("""
             WITH latest_slots AS (
@@ -661,7 +661,7 @@ def api_debug_test_query():
             SELECT COUNT(*) FROM latest_slots
         """)
         test_results['cte_count'] = cursor.fetchone()[0]
-        
+
         # Test 3: Full SELECT query (like inventory endpoint)
         cursor.execute("""
             WITH latest_slots AS (
@@ -675,7 +675,7 @@ def api_debug_test_query():
             LIMIT 5
         """)
         test_results['select_query_rows'] = len(cursor.fetchall())
-        
+
         # Test 3b: SELECT with JOIN (like fixed inventory endpoint)
         cursor.execute("""
             WITH latest_slots AS (
@@ -696,7 +696,7 @@ def api_debug_test_query():
             LIMIT 5
         """)
         test_results['select_with_join_rows'] = len(cursor.fetchall())
-        
+
         # Test 4: Clients query with JOIN
         cursor.execute("""
             SELECT DISTINCT cl."Client Name" as client
@@ -710,16 +710,16 @@ def api_debug_test_query():
             LIMIT 5
         """)
         test_results['clients_query_rows'] = len(cursor.fetchall())
-        
+
         cursor.close()
         conn.close()
-        
+
         return jsonify({
             'status': 'success',
             'tests': test_results,
             'message': 'All test queries executed successfully'
         })
-        
+
     except Exception as e:
         import traceback
         return jsonify({
@@ -735,7 +735,7 @@ def api_clients():
     try:
         conn = get_db_connection()
         cursor = create_cursor(conn)
-        
+
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -765,7 +765,7 @@ def api_clients():
         cursor.execute(query)
         results = cursor.fetchall()
         print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
-        
+
         for row in results:
             all_clients.add(row[0])
             print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
@@ -774,14 +774,14 @@ def api_clients():
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
                 continue
-        
+
         cursor.close()
         conn.close()
-        
+
         client_list = sorted(list(all_clients))
         print(f"DEBUG: Clients API returning {len(client_list)} total clients")
         return jsonify(client_list)
-        
+
     except Exception as e:
         print(f"Clients API Error: {e}")
         import traceback
