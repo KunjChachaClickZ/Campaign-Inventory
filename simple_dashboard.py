@@ -205,8 +205,8 @@ def safe_date_parsing(date_string, formats):
 def get_inventory_summary(start_date=None, end_date=None):
     """Get summary statistics for inventory with optional date filtering"""
     try:
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
 
     # Define brand tables
     brand_tables = [
