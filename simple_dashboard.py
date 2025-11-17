@@ -620,6 +620,83 @@ def api_brand_product_breakdown():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/debug/test-query')
+def api_debug_test_query():
+    """Debug endpoint to test database queries"""
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Test simple query first
+        test_results = {}
+        
+        # Test 1: Simple count query (like brand-overview)
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM campaign_metadata.aa_inventory 
+            WHERE "ID" >= 8000
+        """)
+        test_results['simple_count'] = cursor.fetchone()[0]
+        
+        # Test 2: CTE query (like inventory endpoint)
+        cursor.execute("""
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.aa_inventory
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+            SELECT COUNT(*) FROM latest_slots
+        """)
+        test_results['cte_count'] = cursor.fetchone()[0]
+        
+        # Test 3: Full SELECT query (like inventory endpoint)
+        cursor.execute("""
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.aa_inventory
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+            SELECT "ID", "Website_Name", "Booked/Not Booked"
+            FROM latest_slots
+            LIMIT 5
+        """)
+        test_results['select_query_rows'] = len(cursor.fetchall())
+        
+        # Test 4: Clients query
+        cursor.execute("""
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.aa_inventory
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+            SELECT DISTINCT "Client"
+            FROM latest_slots
+            WHERE "Client" IS NOT NULL AND "Client" != ''
+            LIMIT 5
+        """)
+        test_results['clients_query_rows'] = len(cursor.fetchall())
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'tests': test_results,
+            'message': 'All test queries executed successfully'
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @app.route('/api/clients')
 def api_clients():
     """API endpoint for client data"""
