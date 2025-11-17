@@ -255,7 +255,6 @@ def get_inventory_summary(start_date=None, end_date=None):
                 print(f"DEBUG: Query without date filter for {table}: {query}")
 
             try:
-            cursor.execute(query)
                 cursor.execute(query)
                 result = cursor.fetchone()
                 if result:
