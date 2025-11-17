@@ -405,7 +405,7 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-        SELECT
+            SELECT
                 inv."ID",
                 inv."Website_Name",
                 inv."Booked/Not Booked",
@@ -584,7 +584,7 @@ def api_brand_product_breakdown():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-                SELECT 
+            SELECT 
                 "Product",
                 COUNT(*) as total,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
