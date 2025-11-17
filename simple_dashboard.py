@@ -469,10 +469,15 @@ def api_inventory():
 
                 # Test query execution
                 try:
-                    # Execute query - always pass params (even if empty list)
-                    cursor.execute(base_query, params)
+                    # Execute query - handle empty params
+                    if len(params) > 0:
+                        cursor.execute(base_query, tuple(params))
+                    else:
+                        cursor.execute(base_query)
                     results = cursor.fetchall()
                     print(f"DEBUG: Query executed successfully for {table}, got {len(results)} rows")
+                    if len(results) > 0:
+                        print(f"DEBUG: First row sample: {results[0]}")
                 except Exception as query_error:
                     print(f"DEBUG: Query execution FAILED for {table}: {query_error}")
                     import traceback
