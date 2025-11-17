@@ -206,8 +206,8 @@ def get_inventory_summary(start_date=None, end_date=None):
     """Get summary statistics for inventory with optional date filtering"""
     try:
         conn = get_db_connection()
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
+        cursor = create_cursor(conn)
+        
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
