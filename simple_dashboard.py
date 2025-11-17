@@ -46,16 +46,19 @@ def get_db_connection():
             import psycopg2
             # If we can import psycopg2 directly, check if it's actually
             # psycopg2 or psycopg aliased
-            if hasattr(psycopg2, '__version__'):
-                # Real psycopg2 - needs 'database'
-                if 'dbname' in config:
-                    config['database'] = config.pop('dbname')
+            try:
+                if hasattr(psycopg2, '__version__'):
+                    # Real psycopg2 - needs 'database'
+                    if 'dbname' in config:
+                        config['database'] = config.pop('dbname')
             except:
                 pass
+        except:
+            pass
 
         conn = psycopg2.connect(**config)
         print("Database connection successful!")
-        return conn
+            return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         # Try with alternative parameter name if first attempt fails
@@ -212,7 +215,6 @@ def get_inventory_summary(start_date=None, end_date=None):
             ('cfo_inventory', 'CFO'),
             ('gt_inventory', 'GT'),
             ('hrd_inventory', 'HRD'),
-            ('cz_inventory', 'CZ')
         ]
         
         summary = {
@@ -311,7 +313,7 @@ def get_form_submissions_for_week(start_date, end_date):
             FROM data_products.sponsorship_bookings_form_submissions
             WHERE submit_timestamp >= %s
             AND submit_timestamp <= %s
-            AND brand IN ('AA', 'BG', 'CFO', 'GT', 'HRD', 'CZ')
+            AND brand IN ('AA', 'BG', 'CFO', 'GT', 'HRD')
             GROUP BY brand
         """, (start_date, end_date))
 
@@ -328,7 +330,7 @@ def get_form_submissions_for_week(start_date, end_date):
         conn.close()
 
         # Ensure all brands have a value (default to 0 if not found)
-        for brand_code in ['AA', 'BG', 'CFO', 'GT', 'HRD', 'CZ']:
+        for brand_code in ['AA', 'BG', 'CFO', 'GT', 'HRD']:
             if brand_code not in form_submissions:
                 form_submissions[brand_code] = 0
 
@@ -346,7 +348,6 @@ def get_form_submissions_for_week(start_date, end_date):
             'CFO': 15,
             'GT': 6,
             'HRD': 9,
-            'CZ': 11
         }
 
 
@@ -386,7 +387,6 @@ def api_inventory():
             ('cfo_inventory', 'CFO'),
             ('gt_inventory', 'GT'),
             ('hrd_inventory', 'HRD'),
-            ('cz_inventory', 'CZ')
         ]
 
         all_slots = []
@@ -642,7 +642,6 @@ def api_brand_product_breakdown():
             ('cfo_inventory', 'CFO'),
             ('gt_inventory', 'GT'),
             ('hrd_inventory', 'HRD'),
-            ('cz_inventory', 'CZ')
         ]
         
         breakdown_data = {}
@@ -776,7 +775,7 @@ def api_debug_test_inventory_query():
             inv."Dates",
             COALESCE(cl."Client Name", 'No Client') as "Client",
             inv."Booking ID",
-            inv."Product",
+            inv."Media_Asset" as "Product",
             inv."Price",
             inv."last_updated"
         FROM latest_slots inv
@@ -946,7 +945,6 @@ def api_clients():
             ('cfo_inventory', 'CFO'),
             ('gt_inventory', 'GT'),
             ('hrd_inventory', 'HRD'),
-            ('cz_inventory', 'CZ')
         ]
 
         all_clients = set()
