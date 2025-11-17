@@ -406,14 +406,14 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-        SELECT 
+            SELECT
                 inv."ID",
                 inv."Website_Name",
                 inv."Booked/Not Booked",
                 inv."Dates",
                 COALESCE(cl."Client Name", 'No Client') as "Client",
                 inv."Booking ID",
-                inv."Product",
+                inv."Media_Asset" as "Product",
                 inv."Price",
                 inv."last_updated"
             FROM latest_slots inv
