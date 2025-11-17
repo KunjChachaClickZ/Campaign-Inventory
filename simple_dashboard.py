@@ -36,10 +36,22 @@ def get_db_connection():
     """Get database connection"""
     if not PSYCOPG_AVAILABLE:
         raise Exception("psycopg2 not available")
-
+    
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        print("Database connection successful with psycopg2!")
+        # Try with 'database' first (psycopg2), fallback to 'dbname' (psycopg)
+        config = DB_CONFIG.copy()
+        if 'dbname' in config and 'database' not in config:
+            # If using psycopg2, it needs 'database' instead of 'dbname'
+            try:
+                import psycopg2 as pg
+                # Check if it's actually psycopg2 (not psycopg aliased)
+                if hasattr(pg, 'connect'):
+                    config['database'] = config.pop('dbname')
+            except:
+                pass
+        
+        conn = psycopg2.connect(**config)
+        print("Database connection successful!")
         return conn
     except Exception as e:
         print(f"Database connection error: {e}")
@@ -368,7 +380,7 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-        SELECT
+            SELECT
                 "ID",
                 "Website_Name",
                 "Booked/Not Booked",
