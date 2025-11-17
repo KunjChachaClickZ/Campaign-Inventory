@@ -50,11 +50,8 @@ def get_db_connection():
                 # Real psycopg2 - needs 'database'
                 if 'dbname' in config:
                     config['database'] = config.pop('dbname')
-        else:
-                # Likely psycopg aliased as psycopg2 - needs 'dbname'
+            except:
                 pass
-        except:
-            pass
 
         conn = psycopg2.connect(**config)
         print("Database connection successful!")
@@ -448,7 +445,7 @@ def api_inventory():
             # Add product filter
             product = request.args.get('product')
             if product:
-                base_query += ' AND inv."Product" = %s'
+                base_query += ' AND inv."Media_Asset" = %s'
                 params.append(product)
 
             # Add date filter
@@ -483,6 +480,8 @@ def api_inventory():
                     import traceback
                     print(f"DEBUG: Query error traceback: {traceback.format_exc()}")
                     print(f"DEBUG: Query was: {base_query[:1000]}...")  # Print first 1000 chars
+                    # Rollback transaction on error to allow other queries to proceed
+                    conn.rollback()
                     continue
 
                 if results:
