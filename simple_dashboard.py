@@ -156,22 +156,25 @@ def generate_date_conditions(start_date, end_date, detected_format=None):
     return date_conditions
 
 
-def build_date_filtered_query(table, start_date, end_date):
+def build_date_filtered_query(table, start_date, end_date, use_alias=False):
     """Build query with flexible date filtering"""
     try:
         # Get sample dates to detect format
         sample_dates = get_sample_dates_from_db(table)
         detected_format = detect_date_format(sample_dates)
-
+        
         # Generate date conditions
         start_dt = datetime.strptime(start_date, '%Y-%m-%d')
         end_dt = datetime.strptime(end_date, '%Y-%m-%d')
         date_conditions = generate_date_conditions(
             start_dt, end_dt, detected_format)
-
+        
         print(f"DEBUG: Date conditions for {table}: {date_conditions}")
-
+        
         if date_conditions:
+            # If using alias (after JOIN), prefix with inv.
+            if use_alias:
+                date_conditions = [cond.replace('"Dates"', 'inv."Dates"') for cond in date_conditions]
             date_where_clause = ' OR '.join(date_conditions)
             result = f" AND ({date_where_clause})"
             print(f"DEBUG: Generated date filter for {table}: {result}")
