@@ -415,8 +415,12 @@ def api_inventory():
             base_query += f' ORDER BY "ID" LIMIT {limit}'
 
             try:
+                print(f"DEBUG: Executing query for {table} (brand: {brand_code})")
+                print(f"DEBUG: Query: {base_query[:200]}...")
+                print(f"DEBUG: Params: {params}")
                 cursor.execute(base_query, params)
                 results = cursor.fetchall()
+                print(f"DEBUG: Query returned {len(results)} rows for {table}")
 
                 for row in results:
                     all_slots.append({
@@ -431,17 +435,23 @@ def api_inventory():
                         'last_updated': row[8].isoformat() if row[8] else None,
                         'brand': brand_code
                     })
+                print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
             except Exception as e:
-                print(f"Error getting data from {table}: {e}")
+                print(f"ERROR getting data from {table}: {e}")
+                import traceback
+                print(f"ERROR traceback: {traceback.format_exc()}")
                 continue
 
         cursor.close()
         conn.close()
-
+        
+        print(f"DEBUG: Inventory API returning {len(all_slots)} total slots")
         return jsonify(all_slots)
-
+        
     except Exception as e:
         print(f"Inventory API Error: {e}")
+        import traceback
+        print(f"Inventory API traceback: {traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -626,22 +636,31 @@ def api_clients():
             """
 
             try:
+                print(f"DEBUG: Executing clients query for {table} (brand: {brand_code})")
                 cursor.execute(query)
                 results = cursor.fetchall()
+                print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
                 
                 for row in results:
                     all_clients.add(row[0])
+                print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
             except Exception as e:
-                print(f"Error getting clients from {table}: {e}")
+                print(f"ERROR getting clients from {table}: {e}")
+                import traceback
+                print(f"ERROR traceback: {traceback.format_exc()}")
                 continue
         
         cursor.close()
         conn.close()
         
-        return jsonify(sorted(list(all_clients)))
+        client_list = sorted(list(all_clients))
+        print(f"DEBUG: Clients API returning {len(client_list)} total clients")
+        return jsonify(client_list)
         
     except Exception as e:
         print(f"Clients API Error: {e}")
+        import traceback
+        print(f"Clients API traceback: {traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 
