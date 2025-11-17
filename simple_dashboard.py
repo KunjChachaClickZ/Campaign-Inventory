@@ -133,7 +133,7 @@ def get_sample_dates_from_db(table_name, limit=10):
         conn.close()
 
         return sample_dates
-            except Exception as e:
+    except Exception as e:
         print(f"Error getting sample dates from {table_name}: {e}")
         return []
 
@@ -206,8 +206,8 @@ def get_inventory_summary(start_date=None, end_date=None):
     """Get summary statistics for inventory with optional date filtering"""
     try:
     conn = get_db_connection()
-    cursor = create_cursor(conn)
-    
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -256,8 +256,8 @@ def get_inventory_summary(start_date=None, end_date=None):
 
             try:
             cursor.execute(query)
+                cursor.execute(query)
                 result = cursor.fetchone()
-
                 if result:
                     brand_total = result[0]
                     brand_booked = result[1]
@@ -303,8 +303,8 @@ def get_form_submissions_for_week(start_date, end_date):
     """Get form submissions count for each brand for the given week from data_products.sponsorship_bookings_form_submissions"""
     try:
     conn = get_db_connection()
-    cursor = create_cursor(conn)
-    
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
         # Query the real form submissions table
         cursor.execute("""
         SELECT 
