@@ -278,9 +278,9 @@ def get_inventory_summary(start_date=None, end_date=None):
                              100) if brand_total > 0 else 0,
                             1)
                     }
-                except Exception as e:
+            except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
-                    continue
+                continue
         
         cursor.close()
         conn.close()
