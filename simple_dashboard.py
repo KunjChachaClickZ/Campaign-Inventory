@@ -219,16 +219,16 @@ def get_inventory_summary(start_date=None, end_date=None):
         ]
 
         summary = {
-        'total_slots': 0,
-        'booked': 0,
-        'available': 0,
-        'on_hold': 0,
-        'by_brand': {}
-    }
+            'total_slots': 0,
+            'booked': 0,
+            'available': 0,
+            'on_hold': 0,
+            'by_brand': {}
+        }
 
-    for table, brand_code in brand_tables:
-        # Build base query with duplicate handling
-        base_query = f"""
+        for table, brand_code in brand_tables:
+            # Build base query with duplicate handling
+            base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
                 FROM campaign_metadata.{table}
@@ -243,44 +243,44 @@ def get_inventory_summary(start_date=None, end_date=None):
             FROM latest_slots
             """
 
-        # Add date filtering if provided
-        if start_date and end_date:
-            # Use dynamic date filtering
-            date_filter = build_date_filtered_query(
-                table, start_date, end_date)
-            query = base_query + date_filter
-            print(f"DEBUG: Query with date filter for {table}: {query}")
+            # Add date filtering if provided
+            if start_date and end_date:
+                # Use dynamic date filtering
+                date_filter = build_date_filtered_query(
+                    table, start_date, end_date)
+                query = base_query + date_filter
+                print(f"DEBUG: Query with date filter for {table}: {query}")
             else:
                 # No date filtering
                 query = base_query
                 print(f"DEBUG: Query without date filter for {table}: {query}")
 
             try:
-            cursor.execute(query)
-            result = cursor.fetchone()
+                cursor.execute(query)
+                result = cursor.fetchone()
 
-            if result:
-                brand_total = result[0]
-                brand_booked = result[1]
-                brand_available = result[2]
-                brand_on_hold = result[3]
+                if result:
+                    brand_total = result[0]
+                    brand_booked = result[1]
+                    brand_available = result[2]
+                    brand_on_hold = result[3]
 
-                summary['total_slots'] += brand_total
-                summary['booked'] += brand_booked
-                summary['available'] += brand_available
-                summary['on_hold'] += brand_on_hold
+                    summary['total_slots'] += brand_total
+                    summary['booked'] += brand_booked
+                    summary['available'] += brand_available
+                    summary['on_hold'] += brand_on_hold
 
-                summary['by_brand'][brand_code] = {
-                    'total': brand_total,
-                    'booked': brand_booked,
-                    'available': brand_available,
-                    'on_hold': brand_on_hold,
-                    'percentage': round(
-                        (brand_booked / brand_total *
-                         100) if brand_total > 0 else 0,
-                        1)
-                }
-                except Exception as e:
+                    summary['by_brand'][brand_code] = {
+                        'total': brand_total,
+                        'booked': brand_booked,
+                        'available': brand_available,
+                        'on_hold': brand_on_hold,
+                        'percentage': round(
+                            (brand_booked / brand_total *
+                             100) if brand_total > 0 else 0,
+                            1)
+                    }
+            except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
                 continue
 
@@ -303,12 +303,12 @@ def get_inventory_summary(start_date=None, end_date=None):
 def get_form_submissions_for_week(start_date, end_date):
     """Get form submissions count for each brand for the given week from data_products.sponsorship_bookings_form_submissions"""
     try:
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
 
-    # Query the real form submissions table
-    cursor.execute("""
-        SELECT 
+        # Query the real form submissions table
+        cursor.execute("""
+        SELECT
                 brand,
                 COUNT(*) as form_count
             FROM data_products.sponsorship_bookings_form_submissions
@@ -396,8 +396,7 @@ def api_inventory():
             if brand and brand != brand_code:
                 continue
 
-            # Build query with duplicate handling and JOIN with campaign_ledger for client info
-            # First try without JOIN to test basic query
+            # Build query WITHOUT JOIN first to test basic functionality
             base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
@@ -405,20 +404,17 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-            SELECT 
-                inv."ID",
-                inv."Website_Name",
-                inv."Booked/Not Booked",
-                inv."Dates",
-                COALESCE(cl."Client Name", 'No Client') as "Client",
-                inv."Booking ID",
-                inv."Product",
-                inv."Price",
-                inv."last_updated"
-            FROM latest_slots inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl
-                ON inv."Booking ID" = cl."Booking ID"
-                AND cl."Brand" = '{brand_code}'
+            SELECT
+                "ID",
+                "Website_Name",
+                "Booked/Not Booked",
+                "Dates",
+                "Client",
+                "Booking ID",
+                "Product",
+                "Price",
+                "last_updated"
+            FROM latest_slots
             WHERE 1=1
             """
 
@@ -444,27 +440,44 @@ def api_inventory():
             base_query += ' ORDER BY inv."ID"'
 
             try:
-                print(
-                    f"DEBUG: Executing query for {table} (brand: {brand_code})")
-                print(f"DEBUG: Query: {base_query[:200]}...")
+                print(f"DEBUG: Starting query for {table} (brand: {brand_code})")
                 print(f"DEBUG: Params: {params}")
-                cursor.execute(base_query, params)
-                results = cursor.fetchall()
-                print(f"DEBUG: Query returned {len(results)} rows for {table}")
+                print(f"DEBUG: Query length: {len(base_query)} chars")
+
+                # Test query execution
+                try:
+                    cursor.execute(base_query, params)
+                    results = cursor.fetchall()
+                    print(f"DEBUG: Query executed successfully for {table}, got {len(results)} rows")
+                except Exception as query_error:
+                    print(f"DEBUG: Query execution FAILED for {table}: {query_error}")
+                    continue
+
+                if results:
+                    print(f"DEBUG: First result sample: {results[0]}")
+                else:
+                    print(f"DEBUG: No results returned from query for {table}")
 
                 for row in results:
-                    all_slots.append({
-                        'id': row[0],
-                        'website_name': row[1],
-                        'status': row[2],
-                        'dates': row[3],
-                        'client': row[4],
-                        'booking_id': row[5],
-                        'product': row[6],
-                        'price': row[7],
-                        'last_updated': row[8].isoformat() if row[8] else None,
-                        'brand': brand_code
-                    })
+                    try:
+                        slot_data = {
+                            'id': row[0],
+                            'website_name': row[1],
+                            'status': row[2],
+                            'dates': row[3],
+                            'client': row[4],
+                            'booking_id': row[5],
+                            'product': row[6],
+                            'price': row[7],
+                            'last_updated': row[8].isoformat() if row[8] else None,
+                            'brand': brand_code
+                        }
+                        all_slots.append(slot_data)
+                        print(f"DEBUG: Added slot {row[0]} to results")
+                    except Exception as row_error:
+                        print(f"DEBUG: Error processing row {row}: {row_error}")
+                        continue
+
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
             except Exception as e:
                 print(f"ERROR getting data from {table}: {e}")
@@ -476,11 +489,16 @@ def api_inventory():
         cursor.close()
         conn.close()
 
+        print(f"DEBUG: Before limit - total slots: {len(all_slots)}")
+
         # Apply global LIMIT after collecting from all tables
         if len(all_slots) > limit:
             all_slots = all_slots[:limit]
+            print(f"DEBUG: Applied limit {limit}, now returning {len(all_slots)} slots")
+        else:
+            print(f"DEBUG: No limit applied, returning all {len(all_slots)} slots")
 
-        print(f"DEBUG: Inventory API returning {len(all_slots)} total slots")
+        print(f"DEBUG: Final return - {len(all_slots)} slots")
         return jsonify(all_slots)
 
     except Exception as e:
