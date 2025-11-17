@@ -318,11 +318,11 @@ def get_form_submissions_for_week(start_date, end_date):
             GROUP BY brand
         """, (start_date, end_date))
 
-    results = cursor.fetchall()
-    form_submissions = {}
+        results = cursor.fetchall()
+        form_submissions = {}
 
-    for row in results:
-        form_submissions[row[0]] = row[1]
+        for row in results:
+            form_submissions[row[0]] = row[1]
 
         print(
             f"Found form submissions from data_products.sponsorship_bookings_form_submissions: {form_submissions}")
