@@ -523,7 +523,7 @@ def api_inventory():
         # Close connection after processing all tables
         cursor.close()
         conn.close()
-
+        
         print(f"DEBUG: Before limit - total slots: {len(all_slots)}")
         print(f"DEBUG: Processed {len(brand_tables)} brand tables")
 
@@ -632,7 +632,7 @@ def api_brand_product_breakdown():
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-
+        
         conn = get_db_connection()
         cursor = create_cursor(conn)
         
@@ -657,7 +657,7 @@ def api_brand_product_breakdown():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-                SELECT 
+        SELECT 
                 "Product",
                 COUNT(*) as total,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
@@ -677,10 +677,10 @@ def api_brand_product_breakdown():
 
             try:
                 cursor.execute(query)
-                results = cursor.fetchall()
-
+        results = cursor.fetchall()
+        
                 products = []
-                for row in results:
+        for row in results:
                     products.append({
                         'product': row[0],
                         'total': row[1],
@@ -705,6 +705,53 @@ def api_brand_product_breakdown():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/debug/test-simple-inventory')
+def api_debug_test_simple_inventory():
+    """Minimal test - just get data from one table"""
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+        
+        # Simplest possible query
+        query = """
+        SELECT "ID", "Website_Name", "Booked/Not Booked", "Dates", "Booking ID", "Product"
+        FROM campaign_metadata.aa_inventory
+        WHERE "ID" >= 8000
+        LIMIT 5
+        """
+        
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        data = []
+        for row in results:
+            data.append({
+                'id': row[0],
+                'website_name': row[1],
+                'status': row[2],
+                'slot_date': row[3],
+                'booking_id': row[4],
+                'product': row[5],
+                'brand': 'AA'
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(data),
+            'data': data
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @app.route('/api/debug/test-inventory-query')
 def api_debug_test_inventory_query():
     """Debug endpoint to test inventory query exactly as used in inventory endpoint"""
@@ -723,7 +770,7 @@ def api_debug_test_inventory_query():
             WHERE "ID" >= 8000
             ORDER BY "ID", last_updated DESC
         )
-            SELECT 
+                SELECT 
             inv."ID",
             inv."Website_Name",
             inv."Booked/Not Booked",
@@ -770,16 +817,16 @@ def api_debug_test_inventory_query():
                     'error': f'Error processing row: {row_error}',
                     'row': str(row)
                 }), 500
-
+        
         cursor.close()
         conn.close()
-
+        
         return jsonify({
             'status': 'success',
             'count': len(all_slots),
             'data': all_slots
         })
-
+        
     except Exception as e:
         import traceback
         return jsonify({
