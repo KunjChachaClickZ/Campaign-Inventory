@@ -412,7 +412,7 @@ def api_inventory():
                 COALESCE(cl."Client Name", 'No Client') as "Client",
                 inv."Booking ID",
                 inv."Media_Asset" as "Product",
-                inv."Price",
+                NULL as "Price",
                 inv."last_updated"
             FROM latest_slots inv
             LEFT JOIN campaign_metadata.campaign_ledger cl 
