@@ -465,8 +465,8 @@ def api_inventory():
                         'brand': brand_code
                     })
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
-    except Exception as e:
-        print(f"ERROR getting data from {table}: {e}")
+            except Exception as e:
+                print(f"ERROR getting data from {table}: {e}")
         import traceback
         print(f"ERROR traceback: {traceback.format_exc()}")
         continue
