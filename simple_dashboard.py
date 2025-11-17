@@ -410,7 +410,7 @@ def api_inventory():
                 inv."Website_Name",
                 inv."Booked/Not Booked",
                 inv."Dates",
-                COALESCE(cl."Client Name", inv."Client") as "Client",
+                COALESCE(cl."Client Name", 'No Client') as "Client",
                 inv."Booking ID",
                 inv."Product",
                 inv."Price",
