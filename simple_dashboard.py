@@ -667,6 +667,27 @@ def api_debug_test_query():
         """)
         test_results['select_query_rows'] = len(cursor.fetchall())
         
+        # Test 3b: SELECT with JOIN (like fixed inventory endpoint)
+        cursor.execute("""
+            WITH latest_slots AS (
+                SELECT DISTINCT ON ("ID") *
+                FROM campaign_metadata.aa_inventory
+                WHERE "ID" >= 8000
+                ORDER BY "ID", last_updated DESC
+            )
+            SELECT
+                inv."ID",
+                inv."Website_Name",
+                inv."Booked/Not Booked",
+                COALESCE(cl."Client Name", 'No Client') as "Client"
+            FROM latest_slots inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'AA'
+            LIMIT 5
+        """)
+        test_results['select_with_join_rows'] = len(cursor.fetchall())
+        
         # Test 4: Clients query with JOIN
         cursor.execute("""
             SELECT DISTINCT cl."Client Name" as client
