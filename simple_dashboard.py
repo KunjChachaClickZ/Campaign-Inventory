@@ -115,7 +115,7 @@ def get_sample_dates_from_db(table_name, limit=10):
     try:
     conn = get_db_connection()
     cursor = create_cursor(conn)
-    
+
     query = f"""
         SELECT DISTINCT "Dates"
         FROM campaign_metadata.{table_name}
@@ -207,7 +207,7 @@ def get_inventory_summary(start_date=None, end_date=None):
     try:
     conn = get_db_connection()
     cursor = create_cursor(conn)
-    
+
     # Define brand tables
     brand_tables = [
         ('aa_inventory', 'AA'),
@@ -217,7 +217,7 @@ def get_inventory_summary(start_date=None, end_date=None):
         ('hrd_inventory', 'HRD'),
         ('cz_inventory', 'CZ')
     ]
-        
+
     summary = {
         'total_slots': 0,
         'booked': 0,
@@ -283,12 +283,12 @@ def get_inventory_summary(start_date=None, end_date=None):
                 except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
                 continue
-        
+
         cursor.close()
         conn.close()
 
         return summary
-        
+
     except Exception as e:
         print(f"Error getting inventory summary: {e}")
         return {
@@ -305,7 +305,7 @@ def get_form_submissions_for_week(start_date, end_date):
     try:
     conn = get_db_connection()
     cursor = create_cursor(conn)
-    
+
     # Query the real form submissions table
     cursor.execute("""
         SELECT 
@@ -320,7 +320,7 @@ def get_form_submissions_for_week(start_date, end_date):
 
     results = cursor.fetchall()
     form_submissions = {}
-        
+
     for row in results:
         form_submissions[row[0]] = row[1]
 
@@ -490,7 +490,7 @@ def api_brand_overview():
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        
+
         summary = get_inventory_summary(start_date, end_date)
 
         # Format data for frontend
@@ -562,7 +562,7 @@ def api_brand_product_breakdown():
 
         conn = get_db_connection()
         cursor = create_cursor(conn)
-        
+
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -572,9 +572,9 @@ def api_brand_product_breakdown():
             ('hrd_inventory', 'HRD'),
             ('cz_inventory', 'CZ')
         ]
-        
+
         breakdown_data = {}
-        
+
         for table, brand_code in brand_tables:
             # Build query with duplicate handling
             base_query = f"""
@@ -617,16 +617,16 @@ def api_brand_product_breakdown():
                     })
 
                 breakdown_data[brand_code] = products
-                
+
             except Exception as e:
                 print(f"Error getting product breakdown for {table}: {e}")
                 breakdown_data[brand_code] = []
-        
+
         cursor.close()
         conn.close()
-        
+
         return jsonify(breakdown_data)
-        
+
     except Exception as e:
         print(f"Brand Product Breakdown API Error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -638,7 +638,7 @@ def api_debug_test_query():
     try:
         conn = get_db_connection()
         cursor = create_cursor(conn)
-        
+
         # Test simple query first
         test_results = {}
 
@@ -765,7 +765,7 @@ def api_clients():
         cursor.execute(query)
         results = cursor.fetchall()
         print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
-        
+
         for row in results:
             all_clients.add(row[0])
             print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
@@ -774,14 +774,14 @@ def api_clients():
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
                 continue
-        
+
         cursor.close()
         conn.close()
-        
+
         client_list = sorted(list(all_clients))
         print(f"DEBUG: Clients API returning {len(client_list)} total clients")
         return jsonify(client_list)
-        
+
     except Exception as e:
         print(f"Clients API Error: {e}")
         import traceback
