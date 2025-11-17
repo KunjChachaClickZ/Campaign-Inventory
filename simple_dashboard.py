@@ -460,6 +460,7 @@ def api_inventory():
                 print(f"DEBUG: Starting query for {table} (brand: {brand_code})")
                 print(f"DEBUG: Params: {params}")
                 print(f"DEBUG: Query length: {len(base_query)} chars")
+                print(f"DEBUG: Full query: {base_query}")
 
                 # Test query execution
                 try:
@@ -474,13 +475,16 @@ def api_inventory():
                     print(f"DEBUG: Query execution FAILED for {table}: {query_error}")
                     import traceback
                     print(f"DEBUG: Query error traceback: {traceback.format_exc()}")
-                    print(f"DEBUG: Query was: {base_query[:500]}...")  # Print first 500 chars
-                    continue
+                    print(f"DEBUG: Query was: {base_query[:1000]}...")  # Print first 1000 chars
+                    # Don't continue - raise the error so we can see it
+                    raise
 
                 if results:
                     print(f"DEBUG: First result sample: {results[0]}")
                 else:
                     print(f"DEBUG: No results returned from query for {table}")
+                    # Continue to next table even if no results
+                    continue
 
                 for row in results:
                     try:
