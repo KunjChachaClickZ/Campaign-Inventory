@@ -399,10 +399,12 @@ def api_inventory():
             # Build query WITH JOIN to get client names
             base_query = f"""
             WITH latest_slots AS (
-                SELECT DISTINCT ON ("ID") *
+                SELECT DISTINCT ON ("Booking ID") *
                 FROM campaign_metadata.{table}
                 WHERE "ID" >= 8000
-                ORDER BY "ID", last_updated DESC
+                AND "Booking ID" IS NOT NULL
+                AND "Booking ID" != ''
+                ORDER BY "Booking ID", last_updated DESC
             )
             SELECT
                 inv."ID",
