@@ -208,17 +208,17 @@ def get_inventory_summary(start_date=None, end_date=None):
         conn = get_db_connection()
         cursor = create_cursor(conn)
 
-    # Define brand tables
-    brand_tables = [
-        ('aa_inventory', 'AA'),
-        ('bob_inventory', 'BG'),
-        ('cfo_inventory', 'CFO'),
-        ('gt_inventory', 'GT'),
-        ('hrd_inventory', 'HRD'),
-        ('cz_inventory', 'CZ')
-    ]
+        # Define brand tables
+        brand_tables = [
+            ('aa_inventory', 'AA'),
+            ('bob_inventory', 'BG'),
+            ('cfo_inventory', 'CFO'),
+            ('gt_inventory', 'GT'),
+            ('hrd_inventory', 'HRD'),
+            ('cz_inventory', 'CZ')
+        ]
 
-    summary = {
+        summary = {
         'total_slots': 0,
         'booked': 0,
         'available': 0,
