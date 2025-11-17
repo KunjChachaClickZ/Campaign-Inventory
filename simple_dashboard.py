@@ -259,7 +259,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                 cursor.execute(query)
                 result = cursor.fetchone()
 
-            if result:
+                if result:
                 brand_total = result[0]
                 brand_booked = result[1]
                 brand_available = result[2]
