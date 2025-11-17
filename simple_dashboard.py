@@ -396,7 +396,7 @@ def api_inventory():
             if brand and brand != brand_code:
                 continue
 
-            # Build query WITHOUT JOIN first to test basic functionality
+            # Build query WITH JOIN to get client names
             base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
@@ -405,32 +405,48 @@ def api_inventory():
                 ORDER BY "ID", last_updated DESC
             )
             SELECT
-                "ID",
-                "Website_Name",
-                "Booked/Not Booked",
-                "Dates",
-                "Client",
-                "Booking ID",
-                "Product",
-                "Price",
-                "last_updated"
-            FROM latest_slots
+                inv."ID",
+                inv."Website_Name",
+                inv."Booked/Not Booked",
+                inv."Dates",
+                COALESCE(cl."Client Name", 'No Client') as "Client",
+                inv."Booking ID",
+                inv."Product",
+                inv."Price",
+                inv."last_updated"
+            FROM latest_slots inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = '{brand_code}'
             WHERE 1=1
             """
 
             params = []
 
-            # Add status filter (using inv alias after JOIN)
+            # Add status filter
             if status:
+                # Map frontend status to database values
+                status_map = {
+                    'Booked': 'Booked',
+                    'Available': 'Not Booked',
+                    'On Hold': 'Hold'
+                }
+                db_status = status_map.get(status, status)
                 base_query += ' AND inv."Booked/Not Booked" = %s'
-                params.append(status)
+                params.append(db_status)
 
-            # Add client filter (using joined campaign_ledger table)
+            # Add client filter
             if client:
                 base_query += ' AND cl."Client Name" ILIKE %s'
                 params.append(f'%{client}%')
 
-            # Add date filter (using inv alias after JOIN)
+            # Add product filter
+            product = request.args.get('product')
+            if product:
+                base_query += ' AND inv."Product" = %s'
+                params.append(product)
+
+            # Add date filter
             if start_date and end_date:
                 date_filter = build_date_filtered_query(
                     table, start_date, end_date, use_alias=True)
@@ -464,7 +480,7 @@ def api_inventory():
                             'id': row[0],
                             'website_name': row[1],
                             'status': row[2],
-                            'dates': row[3],
+                            'slot_date': row[3],  # Changed from 'dates' to 'slot_date' to match frontend
                             'client': row[4],
                             'booking_id': row[5],
                             'product': row[6],
@@ -802,7 +818,8 @@ def api_clients():
         cursor.close()
         conn.close()
 
-        client_list = sorted(list(all_clients))
+        # Return as array of objects with client_name for frontend compatibility
+        client_list = [{'client_name': name} for name in sorted(list(all_clients))]
         print(f"DEBUG: Clients API returning {len(client_list)} total clients")
         return jsonify(client_list)
 

@@ -420,11 +420,22 @@
                     console.log('Client data received from API:', data);
                     
                     // Process the API response
-                    const clients = data.map(client => ({
-                        name: client.client_name,
-                        count: client.total_bookings,
-                        brands: client.brands
-                    }));
+                    // Handle both array of strings and array of objects
+                    const clients = data.map(client => {
+                        if (typeof client === 'string') {
+                            return {
+                                name: client,
+                                count: 0,
+                                brands: ''
+                            };
+                        } else {
+                            return {
+                                name: client.client_name || client.name || client,
+                                count: client.total_bookings || client.count || 0,
+                                brands: client.brands || ''
+                            };
+                        }
+                    });
                     
                     // Store clients for autocomplete
                     allClientsData = clients;
@@ -448,17 +459,20 @@
                     // Extract unique clients from inventory data
                     const uniqueClients = new Map();
                     inventoryData.forEach(item => {
-                        if (item.client_name && item.client_name !== 'N/A') {
-                            if (!uniqueClients.has(item.client_name)) {
-                                uniqueClients.set(item.client_name, {
-                                    name: item.client_name,
+                        const clientName = item.client || item.client_name;
+                        if (clientName && clientName !== 'N/A' && clientName !== 'No Client') {
+                            if (!uniqueClients.has(clientName)) {
+                                uniqueClients.set(clientName, {
+                                    name: clientName,
                                     count: 0,
                                     brands: new Set()
                                 });
                             }
-                            const clientData = uniqueClients.get(item.client_name);
+                            const clientData = uniqueClients.get(clientName);
                             clientData.count++;
-                            clientData.brands.add(item.brand);
+                            if (item.brand) {
+                                clientData.brands.add(item.brand);
+                            }
                         }
                     });
                     
