@@ -451,8 +451,8 @@ def api_inventory():
                 if date_filter:  # Only add if date_filter is not empty
                     base_query += date_filter
 
-            # Don't apply LIMIT here - we'll limit after collecting from all tables
-            base_query += ' ORDER BY inv."ID"'
+            # Add LIMIT per table to prevent timeout
+            base_query += ' ORDER BY inv."ID" LIMIT 1000'
 
             try:
                 print(f"DEBUG: Starting query for {table} (brand: {brand_code})")
@@ -513,6 +513,7 @@ def api_inventory():
         conn.close()
 
         print(f"DEBUG: Before limit - total slots: {len(all_slots)}")
+        print(f"DEBUG: Processed {len(brand_tables)} brand tables")
 
         # Apply global LIMIT after collecting from all tables
         if len(all_slots) > limit:
@@ -522,6 +523,19 @@ def api_inventory():
             print(f"DEBUG: No limit applied, returning all {len(all_slots)} slots")
 
         print(f"DEBUG: Final return - {len(all_slots)} slots")
+        
+        # If still empty, return error info for debugging
+        if len(all_slots) == 0:
+            print(f"WARNING: Inventory endpoint returning empty array after processing all tables")
+            return jsonify({
+                "error": "No data found",
+                "debug": {
+                    "tables_processed": len(brand_tables),
+                    "brand_filter": brand,
+                    "message": "Check server logs for detailed debug information"
+                }
+            })
+        
         return jsonify(all_slots)
 
     except Exception as e:
