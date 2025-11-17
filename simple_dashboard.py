@@ -684,6 +684,90 @@ def api_brand_product_breakdown():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/debug/test-inventory-query')
+def api_debug_test_inventory_query():
+    """Debug endpoint to test inventory query exactly as used in inventory endpoint"""
+    try:
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
+
+        # Test with exact same query structure as inventory endpoint
+        table = 'aa_inventory'
+        brand_code = 'AA'
+        
+        base_query = f"""
+        WITH latest_slots AS (
+            SELECT DISTINCT ON ("ID") *
+            FROM campaign_metadata.{table}
+            WHERE "ID" >= 8000
+            ORDER BY "ID", last_updated DESC
+        )
+        SELECT
+            inv."ID",
+            inv."Website_Name",
+            inv."Booked/Not Booked",
+            inv."Dates",
+            COALESCE(cl."Client Name", 'No Client') as "Client",
+            inv."Booking ID",
+            inv."Product",
+            inv."Price",
+            inv."last_updated"
+        FROM latest_slots inv
+        LEFT JOIN campaign_metadata.campaign_ledger cl 
+            ON inv."Booking ID" = cl."Booking ID" 
+            AND cl."Brand" = %s
+        WHERE 1=1
+        ORDER BY inv."ID"
+        LIMIT 5
+        """
+        
+        params = [brand_code]
+        
+        cursor.execute(base_query, params)
+        results = cursor.fetchall()
+        
+        # Process results exactly as inventory endpoint does
+        all_slots = []
+        for row in results:
+            try:
+                slot_data = {
+                    'id': row[0],
+                    'website_name': row[1],
+                    'status': row[2],
+                    'slot_date': row[3],
+                    'client': row[4],
+                    'booking_id': row[5],
+                    'product': row[6],
+                    'price': row[7],
+                    'last_updated': row[8].isoformat() if row[8] else None,
+                    'brand': brand_code
+                }
+                all_slots.append(slot_data)
+            except Exception as row_error:
+                return jsonify({
+                    'status': 'error',
+                    'error': f'Error processing row: {row_error}',
+                    'row': str(row)
+                }), 500
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            'status': 'success',
+            'count': len(all_slots),
+            'data': all_slots
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @app.route('/api/debug/test-query')
 def api_debug_test_query():
     """Debug endpoint to test database queries"""
