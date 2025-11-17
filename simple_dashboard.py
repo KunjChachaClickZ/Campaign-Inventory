@@ -260,26 +260,26 @@ def get_inventory_summary(start_date=None, end_date=None):
                 result = cursor.fetchone()
 
                 if result:
-                brand_total = result[0]
-                brand_booked = result[1]
-                brand_available = result[2]
-                brand_on_hold = result[3]
+                    brand_total = result[0]
+                    brand_booked = result[1]
+                    brand_available = result[2]
+                    brand_on_hold = result[3]
 
-                summary['total_slots'] += brand_total
-                summary['booked'] += brand_booked
-                summary['available'] += brand_available
-                summary['on_hold'] += brand_on_hold
+                    summary['total_slots'] += brand_total
+                    summary['booked'] += brand_booked
+                    summary['available'] += brand_available
+                    summary['on_hold'] += brand_on_hold
 
-                summary['by_brand'][brand_code] = {
-                    'total': brand_total,
-                    'booked': brand_booked,
-                    'available': brand_available,
-                    'on_hold': brand_on_hold,
-                    'percentage': round(
-                        (brand_booked / brand_total *
-                         100) if brand_total > 0 else 0,
-                        1)
-                }
+                    summary['by_brand'][brand_code] = {
+                        'total': brand_total,
+                        'booked': brand_booked,
+                        'available': brand_available,
+                        'on_hold': brand_on_hold,
+                        'percentage': round(
+                            (brand_booked / brand_total *
+                             100) if brand_total > 0 else 0,
+                            1)
+                    }
                 except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
                 continue
