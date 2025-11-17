@@ -396,8 +396,8 @@ def api_inventory():
             if brand and brand != brand_code:
                 continue
 
-            # Build query WITH JOIN to get client names
-            # Use simpler approach - get data first, then join
+            # Build query - start simple without JOIN to test
+            # If this works, we know the JOIN is the issue
             base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
@@ -405,20 +405,17 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-            SELECT
+        SELECT 
                 inv."ID",
                 inv."Website_Name",
                 inv."Booked/Not Booked",
                 inv."Dates",
-                COALESCE(cl."Client Name", 'No Client') as "Client",
+                'No Client' as "Client",
                 inv."Booking ID",
                 inv."Product",
                 inv."Price",
                 inv."last_updated"
             FROM latest_slots inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
-                AND cl."Brand" = '{brand_code}'
             WHERE 1=1
             """
 
@@ -505,7 +502,7 @@ def api_inventory():
                         continue
 
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
-            except Exception as e:
+    except Exception as e:
                 print(f"ERROR getting data from {table}: {e}")
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
@@ -688,7 +685,7 @@ def api_debug_test_inventory_query():
     try:
         conn = get_db_connection()
         cursor = create_cursor(conn)
-
+        
         # Test with exact same query structure as inventory endpoint
         table = 'aa_inventory'
         brand_code = 'AA'
@@ -700,7 +697,7 @@ def api_debug_test_inventory_query():
             WHERE "ID" >= 8000
             ORDER BY "ID", last_updated DESC
         )
-        SELECT
+            SELECT 
             inv."ID",
             inv."Website_Name",
             inv."Booked/Not Booked",
@@ -711,8 +708,8 @@ def api_debug_test_inventory_query():
             inv."Price",
             inv."last_updated"
         FROM latest_slots inv
-        LEFT JOIN campaign_metadata.campaign_ledger cl 
-            ON inv."Booking ID" = cl."Booking ID" 
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
             AND cl."Brand" = %s
         WHERE 1=1
         ORDER BY inv."ID"
