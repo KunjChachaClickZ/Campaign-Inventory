@@ -133,7 +133,7 @@ def get_sample_dates_from_db(table_name, limit=10):
         conn.close()
 
         return sample_dates
-            except Exception as e:
+    except Exception as e:
         print(f"Error getting sample dates from {table_name}: {e}")
         return []
 
