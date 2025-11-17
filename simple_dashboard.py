@@ -401,8 +401,7 @@ def api_inventory():
             if brand and brand != brand_code:
                 continue
 
-            # Build query - start simple without JOIN to test
-            # If this works, we know the JOIN is the issue
+            # Build query WITH JOIN to get client names
             base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
@@ -415,12 +414,15 @@ def api_inventory():
                 inv."Website_Name",
                 inv."Booked/Not Booked",
                 inv."Dates",
-                'No Client' as "Client",
+                COALESCE(cl."Client Name", 'No Client') as "Client",
                 inv."Booking ID",
                 inv."Product",
                 inv."Price",
                 inv."last_updated"
             FROM latest_slots inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = '{brand_code}'
             WHERE 1=1
             """
 
