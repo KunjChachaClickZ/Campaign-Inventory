@@ -51,8 +51,8 @@ def get_db_connection():
                 if 'dbname' in config:
                     config['database'] = config.pop('dbname')
         else:
-                # Likely psycopg aliased as psycopg2 - needs 'dbname'
-                pass
+            # Likely psycopg aliased as psycopg2 - needs 'dbname'
+            pass
         except:
             pass
 
@@ -116,7 +116,7 @@ def get_sample_dates_from_db(table_name, limit=10):
     conn = get_db_connection()
     cursor = create_cursor(conn)
     
-        query = f"""
+    query = f"""
         SELECT DISTINCT "Dates"
         FROM campaign_metadata.{table_name}
         WHERE "Dates" IS NOT NULL
@@ -125,15 +125,15 @@ def get_sample_dates_from_db(table_name, limit=10):
         LIMIT %s
         """
 
-        cursor.execute(query, (limit,))
-        results = cursor.fetchall()
-        sample_dates = [row[0] for row in results]
+    cursor.execute(query, (limit,))
+    results = cursor.fetchall()
+    sample_dates = [row[0] for row in results]
 
-        cursor.close()
-        conn.close()
+    cursor.close()
+    conn.close()
 
-        return sample_dates
-            except Exception as e:
+    return sample_dates
+    except Exception as e:
         print(f"Error getting sample dates from {table_name}: {e}")
         return []
 
@@ -208,27 +208,27 @@ def get_inventory_summary(start_date=None, end_date=None):
     conn = get_db_connection()
     cursor = create_cursor(conn)
     
-        # Define brand tables
-        brand_tables = [
-            ('aa_inventory', 'AA'),
-            ('bob_inventory', 'BG'),
-            ('cfo_inventory', 'CFO'),
-            ('gt_inventory', 'GT'),
-            ('hrd_inventory', 'HRD'),
-            ('cz_inventory', 'CZ')
-        ]
+    # Define brand tables
+    brand_tables = [
+        ('aa_inventory', 'AA'),
+        ('bob_inventory', 'BG'),
+        ('cfo_inventory', 'CFO'),
+        ('gt_inventory', 'GT'),
+        ('hrd_inventory', 'HRD'),
+        ('cz_inventory', 'CZ')
+    ]
         
-        summary = {
-            'total_slots': 0,
-            'booked': 0,
-            'available': 0,
-            'on_hold': 0,
-            'by_brand': {}
-        }
+    summary = {
+        'total_slots': 0,
+        'booked': 0,
+        'available': 0,
+        'on_hold': 0,
+        'by_brand': {}
+    }
 
-        for table, brand_code in brand_tables:
-            # Build base query with duplicate handling
-            base_query = f"""
+    for table, brand_code in brand_tables:
+        # Build base query with duplicate handling
+        base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
                 FROM campaign_metadata.{table}
@@ -243,13 +243,13 @@ def get_inventory_summary(start_date=None, end_date=None):
             FROM latest_slots
             """
 
-            # Add date filtering if provided
-            if start_date and end_date:
-                # Use dynamic date filtering
-                date_filter = build_date_filtered_query(
-                    table, start_date, end_date)
-                query = base_query + date_filter
-                print(f"DEBUG: Query with date filter for {table}: {query}")
+        # Add date filtering if provided
+        if start_date and end_date:
+            # Use dynamic date filtering
+            date_filter = build_date_filtered_query(
+                table, start_date, end_date)
+            query = base_query + date_filter
+            print(f"DEBUG: Query with date filter for {table}: {query}")
             else:
                 # No date filtering
                 query = base_query
@@ -257,32 +257,32 @@ def get_inventory_summary(start_date=None, end_date=None):
 
             try:
             cursor.execute(query)
-                result = cursor.fetchone()
+            result = cursor.fetchone()
 
-                if result:
-                    brand_total = result[0]
-                    brand_booked = result[1]
-                    brand_available = result[2]
-                    brand_on_hold = result[3]
+            if result:
+                brand_total = result[0]
+                brand_booked = result[1]
+                brand_available = result[2]
+                brand_on_hold = result[3]
 
-                    summary['total_slots'] += brand_total
-                    summary['booked'] += brand_booked
-                    summary['available'] += brand_available
-                    summary['on_hold'] += brand_on_hold
+                summary['total_slots'] += brand_total
+                summary['booked'] += brand_booked
+                summary['available'] += brand_available
+                summary['on_hold'] += brand_on_hold
 
-                    summary['by_brand'][brand_code] = {
-                        'total': brand_total,
-                        'booked': brand_booked,
-                        'available': brand_available,
-                        'on_hold': brand_on_hold,
-                        'percentage': round(
-                            (brand_booked / brand_total *
-                             100) if brand_total > 0 else 0,
-                            1)
-                    }
+                summary['by_brand'][brand_code] = {
+                    'total': brand_total,
+                    'booked': brand_booked,
+                    'available': brand_available,
+                    'on_hold': brand_on_hold,
+                    'percentage': round(
+                        (brand_booked / brand_total *
+                         100) if brand_total > 0 else 0,
+                        1)
+                }
                 except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
-                    continue
+                continue
         
         cursor.close()
         conn.close()
@@ -306,8 +306,8 @@ def get_form_submissions_for_week(start_date, end_date):
     conn = get_db_connection()
     cursor = create_cursor(conn)
     
-        # Query the real form submissions table
-        cursor.execute("""
+    # Query the real form submissions table
+    cursor.execute("""
         SELECT 
                 brand,
                 COUNT(*) as form_count
@@ -318,11 +318,11 @@ def get_form_submissions_for_week(start_date, end_date):
             GROUP BY brand
         """, (start_date, end_date))
 
-        results = cursor.fetchall()
-        form_submissions = {}
+    results = cursor.fetchall()
+    form_submissions = {}
         
-        for row in results:
-            form_submissions[row[0]] = row[1]
+    for row in results:
+        form_submissions[row[0]] = row[1]
 
         print(
             f"Found form submissions from data_products.sponsorship_bookings_form_submissions: {form_submissions}")
@@ -466,10 +466,10 @@ def api_inventory():
                     })
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
     except Exception as e:
-                print(f"ERROR getting data from {table}: {e}")
-                import traceback
-                print(f"ERROR traceback: {traceback.format_exc()}")
-                continue
+        print(f"ERROR getting data from {table}: {e}")
+        import traceback
+        print(f"ERROR traceback: {traceback.format_exc()}")
+        continue
 
         cursor.close()
         conn.close()
@@ -764,11 +764,11 @@ def api_clients():
                 print(f"DEBUG: Executing clients query for {table} (brand: {brand_code})")
         cursor.execute(query)
         results = cursor.fetchall()
-                print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
+        print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
         
         for row in results:
-                    all_clients.add(row[0])
-                print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
+            all_clients.add(row[0])
+            print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
             except Exception as e:
                 print(f"ERROR getting clients from {table}: {e}")
                 import traceback
