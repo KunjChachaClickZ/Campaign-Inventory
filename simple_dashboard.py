@@ -389,7 +389,7 @@ def api_inventory():
             if brand and brand != brand_code:
                 continue
 
-            # Build query with duplicate handling
+            # Build query with duplicate handling and JOIN with campaign_ledger for client info
             base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
@@ -398,16 +398,19 @@ def api_inventory():
                 ORDER BY "ID", last_updated DESC
             )
             SELECT
-                "ID",
-                "Website_Name",
-                "Booked/Not Booked",
-                "Dates",
-                "Client",
-                "Booking ID",
-                "Product",
-                "Price",
-                "last_updated"
-            FROM latest_slots
+                inv."ID",
+                inv."Website_Name",
+                inv."Booked/Not Booked",
+                inv."Dates",
+                COALESCE(cl."Client Name", 'No Client') as "Client",
+                inv."Booking ID",
+                inv."Product",
+                inv."Price",
+                inv."last_updated"
+            FROM latest_slots inv
+            LEFT JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = '{brand_code}'
             WHERE 1=1
             """
 
@@ -664,26 +667,19 @@ def api_debug_test_query():
         """)
         test_results['select_query_rows'] = len(cursor.fetchall())
         
-        # Test 4: Check actual column names
+        # Test 4: Clients query with JOIN
         cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_schema = 'campaign_metadata' 
-            AND table_name = 'aa_inventory'
-            AND column_name ILIKE '%client%'
+            SELECT DISTINCT cl."Client Name" as client
+            FROM campaign_metadata.aa_inventory inv
+            INNER JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = 'AA'
+            WHERE inv."ID" >= 8000
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
+            LIMIT 5
         """)
-        client_columns = [row[0] for row in cursor.fetchall()]
-        test_results['client_columns_found'] = client_columns
-        
-        # Test 5: Get sample data to see structure
-        cursor.execute("""
-            SELECT * FROM campaign_metadata.aa_inventory 
-            WHERE "ID" >= 8000 
-            LIMIT 1
-        """)
-        if cursor.rowcount > 0:
-            colnames = [desc[0] for desc in cursor.description]
-            test_results['sample_columns'] = colnames[:10]  # First 10 columns
+        test_results['clients_query_rows'] = len(cursor.fetchall())
         
         cursor.close()
         conn.close()
@@ -724,15 +720,14 @@ def api_clients():
 
         for table, brand_code in brand_tables:
             query = f"""
-            WITH latest_slots AS (
-                SELECT DISTINCT ON ("ID") *
-                FROM campaign_metadata.{table}
-                WHERE "ID" >= 8000
-                ORDER BY "ID", last_updated DESC
-            )
-            SELECT DISTINCT "Client"
-            FROM latest_slots
-            WHERE "Client" IS NOT NULL AND "Client" != ''
+            SELECT DISTINCT cl."Client Name" as client
+            FROM campaign_metadata.{table} inv
+            INNER JOIN campaign_metadata.campaign_ledger cl 
+                ON inv."Booking ID" = cl."Booking ID" 
+                AND cl."Brand" = '{brand_code}'
+            WHERE inv."ID" >= 8000
+            AND cl."Client Name" IS NOT NULL 
+            AND cl."Client Name" != ''
             """
 
             try:
