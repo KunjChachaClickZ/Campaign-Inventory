@@ -50,7 +50,7 @@ def get_db_connection():
                 # Real psycopg2 - needs 'database'
                 if 'dbname' in config:
                     config['database'] = config.pop('dbname')
-            else:
+        else:
                 # Likely psycopg aliased as psycopg2 - needs 'dbname'
                 pass
         except:
@@ -113,9 +113,9 @@ def detect_date_format(sample_dates):
 def get_sample_dates_from_db(table_name, limit=10):
     """Get sample dates from database to detect format"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
+    
         query = f"""
         SELECT DISTINCT "Dates"
         FROM campaign_metadata.{table_name}
@@ -133,7 +133,7 @@ def get_sample_dates_from_db(table_name, limit=10):
         conn.close()
 
         return sample_dates
-    except Exception as e:
+            except Exception as e:
         print(f"Error getting sample dates from {table_name}: {e}")
         return []
 
@@ -205,9 +205,9 @@ def safe_date_parsing(date_string, formats):
 def get_inventory_summary(start_date=None, end_date=None):
     """Get summary statistics for inventory with optional date filtering"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
+    
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -217,7 +217,7 @@ def get_inventory_summary(start_date=None, end_date=None):
             ('hrd_inventory', 'HRD'),
             ('cz_inventory', 'CZ')
         ]
-
+        
         summary = {
             'total_slots': 0,
             'booked': 0,
@@ -256,7 +256,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                 print(f"DEBUG: Query without date filter for {table}: {query}")
 
             try:
-                cursor.execute(query)
+            cursor.execute(query)
                 result = cursor.fetchone()
 
                 if result:
@@ -280,15 +280,15 @@ def get_inventory_summary(start_date=None, end_date=None):
                              100) if brand_total > 0 else 0,
                             1)
                     }
-            except Exception as e:
+                except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
-                continue
-
+                    continue
+        
         cursor.close()
         conn.close()
 
         return summary
-
+        
     except Exception as e:
         print(f"Error getting inventory summary: {e}")
         return {
@@ -303,12 +303,12 @@ def get_inventory_summary(start_date=None, end_date=None):
 def get_form_submissions_for_week(start_date, end_date):
     """Get form submissions count for each brand for the given week from data_products.sponsorship_bookings_form_submissions"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
-
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
+    
         # Query the real form submissions table
         cursor.execute("""
-        SELECT
+        SELECT 
                 brand,
                 COUNT(*) as form_count
             FROM data_products.sponsorship_bookings_form_submissions
@@ -318,10 +318,10 @@ def get_form_submissions_for_week(start_date, end_date):
             GROUP BY brand
         """, (start_date, end_date))
 
-    results = cursor.fetchall()
+        results = cursor.fetchall()
     form_submissions = {}
-
-    for row in results:
+        
+        for row in results:
         form_submissions[row[0]] = row[1]
 
         print(
@@ -450,7 +450,8 @@ def api_inventory():
             if start_date and end_date:
                 date_filter = build_date_filtered_query(
                     table, start_date, end_date, use_alias=True)
-                base_query += date_filter
+                if date_filter:  # Only add if date_filter is not empty
+                    base_query += date_filter
 
             # Don't apply LIMIT here - we'll limit after collecting from all tables
             base_query += ' ORDER BY inv."ID"'
@@ -462,11 +463,18 @@ def api_inventory():
 
                 # Test query execution
                 try:
-                    cursor.execute(base_query, params)
+                    # Execute query - handle empty params correctly
+                    if params:
+                        cursor.execute(base_query, params)
+                    else:
+                        cursor.execute(base_query)
                     results = cursor.fetchall()
                     print(f"DEBUG: Query executed successfully for {table}, got {len(results)} rows")
                 except Exception as query_error:
                     print(f"DEBUG: Query execution FAILED for {table}: {query_error}")
+                    import traceback
+                    print(f"DEBUG: Query error traceback: {traceback.format_exc()}")
+                    print(f"DEBUG: Query was: {base_query[:500]}...")  # Print first 500 chars
                     continue
 
                 if results:
@@ -495,7 +503,7 @@ def api_inventory():
                         continue
 
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
-            except Exception as e:
+    except Exception as e:
                 print(f"ERROR getting data from {table}: {e}")
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
@@ -530,7 +538,7 @@ def api_brand_overview():
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-
+        
         summary = get_inventory_summary(start_date, end_date)
 
         # Format data for frontend
@@ -602,7 +610,7 @@ def api_brand_product_breakdown():
 
         conn = get_db_connection()
         cursor = create_cursor(conn)
-
+        
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -612,9 +620,9 @@ def api_brand_product_breakdown():
             ('hrd_inventory', 'HRD'),
             ('cz_inventory', 'CZ')
         ]
-
+        
         breakdown_data = {}
-
+        
         for table, brand_code in brand_tables:
             # Build query with duplicate handling
             base_query = f"""
@@ -624,7 +632,7 @@ def api_brand_product_breakdown():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-            SELECT 
+                SELECT 
                 "Product",
                 COUNT(*) as total,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
@@ -657,16 +665,16 @@ def api_brand_product_breakdown():
                     })
 
                 breakdown_data[brand_code] = products
-
+                
             except Exception as e:
                 print(f"Error getting product breakdown for {table}: {e}")
                 breakdown_data[brand_code] = []
-
+        
         cursor.close()
         conn.close()
-
+        
         return jsonify(breakdown_data)
-
+        
     except Exception as e:
         print(f"Brand Product Breakdown API Error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -678,7 +686,7 @@ def api_debug_test_query():
     try:
         conn = get_db_connection()
         cursor = create_cursor(conn)
-
+        
         # Test simple query first
         test_results = {}
 
@@ -805,7 +813,7 @@ def api_clients():
         cursor.execute(query)
         results = cursor.fetchall()
         print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
-
+        
         for row in results:
             all_clients.add(row[0])
             print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
@@ -814,15 +822,15 @@ def api_clients():
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
                 continue
-
+        
         cursor.close()
         conn.close()
-
+        
         # Return as array of objects with client_name for frontend compatibility
         client_list = [{'client_name': name} for name in sorted(list(all_clients))]
         print(f"DEBUG: Clients API returning {len(client_list)} total clients")
         return jsonify(client_list)
-
+        
     except Exception as e:
         print(f"Clients API Error: {e}")
         import traceback
