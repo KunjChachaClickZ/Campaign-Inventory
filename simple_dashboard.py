@@ -376,8 +376,11 @@ def api_inventory():
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
 
+        print(f"DEBUG: Inventory API called with params: limit={limit}, brand={brand}, status={status}, client={client}, start_date={start_date}, end_date={end_date}")
+
         conn = get_db_connection()
         cursor = create_cursor(conn)
+        print(f"DEBUG: Database connection established")
 
         # Define brand tables
         brand_tables = [
@@ -390,8 +393,10 @@ def api_inventory():
         ]
 
         all_slots = []
+        print(f"DEBUG: Starting to process {len(brand_tables)} brand tables")
 
         for table, brand_code in brand_tables:
+            print(f"DEBUG: Processing table {table} with brand_code {brand_code}")
             # Skip if brand filter is specified and doesn't match
             if brand and brand != brand_code:
                 continue
