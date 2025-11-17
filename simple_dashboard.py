@@ -527,6 +527,40 @@ def api_inventory():
         print(f"DEBUG: Before limit - total slots: {len(all_slots)}")
         print(f"DEBUG: Processed {len(brand_tables)} brand tables")
 
+        # Deduplicate by booking_id, keeping the one with latest last_updated
+        seen_booking_ids = {}
+        deduplicated_slots = []
+        for slot in all_slots:
+            booking_id = slot.get('booking_id')
+            if booking_id:
+                # Parse last_updated for comparison
+                slot_updated = slot.get('last_updated')
+                if booking_id not in seen_booking_ids:
+                    seen_booking_ids[booking_id] = slot
+                    deduplicated_slots.append(slot)
+                else:
+                    # Compare timestamps and keep the latest
+                    existing_updated = seen_booking_ids[booking_id].get('last_updated')
+                    if slot_updated and existing_updated:
+                        from datetime import datetime
+                        try:
+                            slot_dt = datetime.fromisoformat(slot_updated.replace('Z', '+00:00'))
+                            existing_dt = datetime.fromisoformat(existing_updated.replace('Z', '+00:00'))
+                            if slot_dt > existing_dt:
+                                # Replace with newer one
+                                deduplicated_slots.remove(seen_booking_ids[booking_id])
+                                seen_booking_ids[booking_id] = slot
+                                deduplicated_slots.append(slot)
+                        except:
+                            # If parsing fails, keep existing
+                            pass
+            else:
+                # Keep slots without booking_id (shouldn't happen due to WHERE clause, but just in case)
+                deduplicated_slots.append(slot)
+        
+        all_slots = deduplicated_slots
+        print(f"DEBUG: After deduplication - {len(all_slots)} unique booking IDs")
+
         # Apply global LIMIT after collecting from all tables
         if len(all_slots) > limit:
             all_slots = all_slots[:limit]
