@@ -127,12 +127,12 @@ def get_sample_dates_from_db(table_name, limit=10):
 
         cursor.execute(query, (limit,))
         results = cursor.fetchall()
-    sample_dates = [row[0] for row in results]
+        sample_dates = [row[0] for row in results]
 
-    cursor.close()
-    conn.close()
+        cursor.close()
+        conn.close()
 
-    return sample_dates
+        return sample_dates
     except Exception as e:
         print(f"Error getting sample dates from {table_name}: {e}")
         return []
