@@ -58,7 +58,7 @@ def get_db_connection():
 
         conn = psycopg2.connect(**config)
         print("Database connection successful!")
-        return conn
+            return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         # Try with alternative parameter name if first attempt fails
@@ -113,8 +113,8 @@ def detect_date_format(sample_dates):
 def get_sample_dates_from_db(table_name, limit=10):
     """Get sample dates from database to detect format"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
     
         query = f"""
         SELECT DISTINCT "Dates"
@@ -133,7 +133,7 @@ def get_sample_dates_from_db(table_name, limit=10):
         conn.close()
 
         return sample_dates
-    except Exception as e:
+            except Exception as e:
         print(f"Error getting sample dates from {table_name}: {e}")
         return []
 
@@ -205,8 +205,8 @@ def safe_date_parsing(date_string, formats):
 def get_inventory_summary(start_date=None, end_date=None):
     """Get summary statistics for inventory with optional date filtering"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
     
         # Define brand tables
         brand_tables = [
@@ -255,7 +255,7 @@ def get_inventory_summary(start_date=None, end_date=None):
                 print(f"DEBUG: Query without date filter for {table}: {query}")
 
             try:
-                cursor.execute(query)
+            cursor.execute(query)
                 result = cursor.fetchone()
 
                 if result:
@@ -279,9 +279,9 @@ def get_inventory_summary(start_date=None, end_date=None):
                              100) if brand_total > 0 else 0,
                             1)
                     }
-            except Exception as e:
+                except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
-                continue
+                    continue
         
         cursor.close()
         conn.close()
@@ -302,8 +302,8 @@ def get_inventory_summary(start_date=None, end_date=None):
 def get_form_submissions_for_week(start_date, end_date):
     """Get form submissions count for each brand for the given week from data_products.sponsorship_bookings_form_submissions"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
     
         # Query the real form submissions table
         cursor.execute("""
@@ -513,7 +513,7 @@ def api_inventory():
                         continue
 
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
-    except Exception as e:
+            except Exception as e:
                 print(f"ERROR getting data from {table}: {e}")
                 import traceback
                 print(f"ERROR traceback: {traceback.format_exc()}")
