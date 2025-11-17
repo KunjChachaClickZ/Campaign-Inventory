@@ -38,24 +38,41 @@ def get_db_connection():
         raise Exception("psycopg2 not available")
     
     try:
-        # Try with 'database' first (psycopg2), fallback to 'dbname' (psycopg)
+        # Handle both psycopg2 (uses 'database') and psycopg (uses 'dbname')
         config = DB_CONFIG.copy()
-        if 'dbname' in config and 'database' not in config:
-            # If using psycopg2, it needs 'database' instead of 'dbname'
-            try:
-                import psycopg2 as pg
-                # Check if it's actually psycopg2 (not psycopg aliased)
-                if hasattr(pg, 'connect'):
+        
+        # Check which library we're actually using
+        try:
+            import psycopg2
+            # If we can import psycopg2 directly, check if it's actually psycopg2 or psycopg aliased
+            if hasattr(psycopg2, '__version__'):
+                # Real psycopg2 - needs 'database'
+                if 'dbname' in config:
                     config['database'] = config.pop('dbname')
-            except:
+            else:
+                # Likely psycopg aliased as psycopg2 - needs 'dbname'
                 pass
+        except:
+            pass
         
         conn = psycopg2.connect(**config)
         print("Database connection successful!")
         return conn
     except Exception as e:
         print(f"Database connection error: {e}")
-        raise e
+        # Try with alternative parameter name if first attempt fails
+        try:
+            config = DB_CONFIG.copy()
+            if 'database' in config:
+                config['dbname'] = config.pop('database')
+            elif 'dbname' in config:
+                config['database'] = config.pop('dbname')
+            conn = psycopg2.connect(**config)
+            print("Database connection successful (retry)!")
+            return conn
+        except Exception as e2:
+            print(f"Database connection retry also failed: {e2}")
+            raise e
 
 
 def create_cursor(conn):
