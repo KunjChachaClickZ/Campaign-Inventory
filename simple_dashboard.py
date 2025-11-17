@@ -673,10 +673,10 @@ def api_brand_product_breakdown():
 
             try:
                 cursor.execute(query)
-        results = cursor.fetchall()
-        
+                results = cursor.fetchall()
+                
                 products = []
-        for row in results:
+                for row in results:
                     products.append({
                         'product': row[0],
                         'total': row[1],
