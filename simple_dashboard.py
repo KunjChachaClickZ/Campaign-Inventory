@@ -406,7 +406,7 @@ def api_inventory():
                 AND "Booking ID" != ''
                 ORDER BY "Booking ID", last_updated DESC
             )
-            SELECT
+            SELECT DISTINCT ON (inv."Booking ID")
                 inv."ID",
                 inv."Website_Name",
                 inv."Booked/Not Booked",
@@ -456,7 +456,8 @@ def api_inventory():
                     base_query += date_filter
 
             # Add LIMIT per table to prevent timeout
-            base_query += ' ORDER BY inv."ID" LIMIT 1000'
+            # Order by Booking ID and last_updated to ensure DISTINCT ON works correctly
+            base_query += ' ORDER BY inv."Booking ID", inv."last_updated" DESC LIMIT 1000'
 
             try:
                 print(f"DEBUG: Starting query for {table} (brand: {brand_code})")
