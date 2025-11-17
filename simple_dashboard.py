@@ -762,8 +762,8 @@ def api_clients():
 
             try:
                 print(f"DEBUG: Executing clients query for {table} (brand: {brand_code})")
-        cursor.execute(query)
-        results = cursor.fetchall()
+                cursor.execute(query)
+                results = cursor.fetchall()
         print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
 
         for row in results:
