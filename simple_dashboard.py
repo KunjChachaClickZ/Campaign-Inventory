@@ -405,7 +405,7 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-        SELECT 
+            SELECT 
                 inv."ID",
                 inv."Website_Name",
                 inv."Booked/Not Booked",
@@ -440,7 +440,8 @@ def api_inventory():
                     table, start_date, end_date, use_alias=True)
                 base_query += date_filter
 
-            base_query += f' ORDER BY inv."ID" LIMIT {limit}'
+            # Don't apply LIMIT here - we'll limit after collecting from all tables
+            base_query += ' ORDER BY inv."ID"'
 
             try:
                 print(
@@ -465,14 +466,19 @@ def api_inventory():
                         'brand': brand_code
                     })
                 print(f"DEBUG: Total slots collected so far: {len(all_slots)}")
-    except Exception as e:
-        print(f"ERROR getting data from {table}: {e}")
-        import traceback
-        print(f"ERROR traceback: {traceback.format_exc()}")
-        continue
+            except Exception as e:
+                print(f"ERROR getting data from {table}: {e}")
+                import traceback
+                print(f"ERROR traceback: {traceback.format_exc()}")
+                continue
 
+        # Close connection after processing all tables
         cursor.close()
         conn.close()
+
+        # Apply global LIMIT after collecting from all tables
+        if len(all_slots) > limit:
+            all_slots = all_slots[:limit]
 
         print(f"DEBUG: Inventory API returning {len(all_slots)} total slots")
         return jsonify(all_slots)
@@ -584,7 +590,7 @@ def api_brand_product_breakdown():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-                SELECT 
+            SELECT 
                 "Product",
                 COUNT(*) as total,
                 COUNT(CASE WHEN "Booked/Not Booked" = 'Booked' THEN 1 END) as booked,
