@@ -58,7 +58,7 @@ def get_db_connection():
 
         conn = psycopg2.connect(**config)
         print("Database connection successful!")
-            return conn
+        return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         # Try with alternative parameter name if first attempt fails
