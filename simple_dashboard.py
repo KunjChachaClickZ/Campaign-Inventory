@@ -113,8 +113,8 @@ def detect_date_format(sample_dates):
 def get_sample_dates_from_db(table_name, limit=10):
     """Get sample dates from database to detect format"""
     try:
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
     
         query = f"""
         SELECT DISTINCT "Dates"
