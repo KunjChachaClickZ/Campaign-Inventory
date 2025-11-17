@@ -421,9 +421,9 @@ def api_inventory():
                 base_query += ' AND "Booked/Not Booked" = %s'
                 params.append(status)
 
-            # Add client filter
+            # Add client filter (using joined campaign_ledger table)
             if client:
-                base_query += ' AND "Client" ILIKE %s'
+                base_query += ' AND cl."Client Name" ILIKE %s'
                 params.append(f'%{client}%')
 
             # Add date filter
