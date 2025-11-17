@@ -58,7 +58,7 @@ def get_db_connection():
 
         conn = psycopg2.connect(**config)
         print("Database connection successful!")
-        return conn
+            return conn
     except Exception as e:
         print(f"Database connection error: {e}")
         # Try with alternative parameter name if first attempt fails
@@ -113,8 +113,8 @@ def detect_date_format(sample_dates):
 def get_sample_dates_from_db(table_name, limit=10):
     """Get sample dates from database to detect format"""
     try:
-        conn = get_db_connection()
-        cursor = create_cursor(conn)
+    conn = get_db_connection()
+    cursor = create_cursor(conn)
     
         query = f"""
         SELECT DISTINCT "Dates"
