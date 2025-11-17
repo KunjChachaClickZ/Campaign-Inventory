@@ -961,13 +961,13 @@ def api_clients():
 
             try:
                 print(f"DEBUG: Executing clients query for {table} (brand: {brand_code})")
-        cursor.execute(query)
-        results = cursor.fetchall()
-        print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
-        
-        for row in results:
-            all_clients.add(row[0])
-            print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
+                cursor.execute(query)
+                results = cursor.fetchall()
+                print(f"DEBUG: Clients query returned {len(results)} rows for {table}")
+                
+                for row in results:
+                    all_clients.add(row[0])
+                    print(f"DEBUG: Total unique clients collected so far: {len(all_clients)}")
             except Exception as e:
                 print(f"ERROR getting clients from {table}: {e}")
                 import traceback
