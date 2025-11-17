@@ -306,8 +306,8 @@ def get_form_submissions_for_week(start_date, end_date):
         conn = get_db_connection()
         cursor = create_cursor(conn)
 
-    # Query the real form submissions table
-    cursor.execute("""
+        # Query the real form submissions table
+        cursor.execute("""
         SELECT
                 brand,
                 COUNT(*) as form_count
