@@ -36,15 +36,16 @@ def get_db_connection():
     """Get database connection"""
     if not PSYCOPG_AVAILABLE:
         raise Exception("psycopg2 not available")
-    
+
     try:
         # Handle both psycopg2 (uses 'database') and psycopg (uses 'dbname')
         config = DB_CONFIG.copy()
-        
+
         # Check which library we're actually using
         try:
             import psycopg2
-            # If we can import psycopg2 directly, check if it's actually psycopg2 or psycopg aliased
+            # If we can import psycopg2 directly, check if it's actually
+            # psycopg2 or psycopg aliased
             if hasattr(psycopg2, '__version__'):
                 # Real psycopg2 - needs 'database'
                 if 'dbname' in config:
@@ -54,7 +55,7 @@ def get_db_connection():
                 pass
         except:
             pass
-        
+
         conn = psycopg2.connect(**config)
         print("Database connection successful!")
         return conn
@@ -114,7 +115,7 @@ def get_sample_dates_from_db(table_name, limit=10):
     try:
     conn = get_db_connection()
     cursor = create_cursor(conn)
-    
+
         query = f"""
         SELECT DISTINCT "Dates"
         FROM campaign_metadata.{table_name}
@@ -162,19 +163,22 @@ def build_date_filtered_query(table, start_date, end_date, use_alias=False):
         # Get sample dates to detect format
         sample_dates = get_sample_dates_from_db(table)
         detected_format = detect_date_format(sample_dates)
-        
+
         # Generate date conditions
         start_dt = datetime.strptime(start_date, '%Y-%m-%d')
         end_dt = datetime.strptime(end_date, '%Y-%m-%d')
         date_conditions = generate_date_conditions(
             start_dt, end_dt, detected_format)
-        
+
         print(f"DEBUG: Date conditions for {table}: {date_conditions}")
-        
+
         if date_conditions:
             # If using alias (after JOIN), prefix with inv.
             if use_alias:
-                date_conditions = [cond.replace('"Dates"', 'inv."Dates"') for cond in date_conditions]
+                date_conditions = [
+    cond.replace(
+        '"Dates"',
+         'inv."Dates"') for cond in date_conditions]
             date_where_clause = ' OR '.join(date_conditions)
             result = f" AND ({date_where_clause})"
             print(f"DEBUG: Generated date filter for {table}: {result}")
@@ -203,7 +207,7 @@ def get_inventory_summary(start_date=None, end_date=None):
     try:
     conn = get_db_connection()
     cursor = create_cursor(conn)
-    
+
         # Define brand tables
         brand_tables = [
             ('aa_inventory', 'AA'),
@@ -213,7 +217,7 @@ def get_inventory_summary(start_date=None, end_date=None):
             ('hrd_inventory', 'HRD'),
             ('cz_inventory', 'CZ')
         ]
-        
+
         summary = {
             'total_slots': 0,
             'booked': 0,
@@ -279,12 +283,12 @@ def get_inventory_summary(start_date=None, end_date=None):
                 except Exception as e:
                 print(f"Error getting summary for {table}: {e}")
                     continue
-        
+
         cursor.close()
         conn.close()
 
         return summary
-        
+
     except Exception as e:
         print(f"Error getting inventory summary: {e}")
         return {
@@ -301,10 +305,10 @@ def get_form_submissions_for_week(start_date, end_date):
     try:
     conn = get_db_connection()
     cursor = create_cursor(conn)
-    
+
         # Query the real form submissions table
         cursor.execute("""
-        SELECT 
+        SELECT
                 brand,
                 COUNT(*) as form_count
             FROM data_products.sponsorship_bookings_form_submissions
@@ -316,7 +320,7 @@ def get_form_submissions_for_week(start_date, end_date):
 
         results = cursor.fetchall()
         form_submissions = {}
-        
+
         for row in results:
             form_submissions[row[0]] = row[1]
 
@@ -392,7 +396,8 @@ def api_inventory():
             if brand and brand != brand_code:
                 continue
 
-            # Build query with duplicate handling and JOIN with campaign_ledger for client info
+            # Build query with duplicate handling and JOIN with campaign_ledger
+            # for client info
             base_query = f"""
             WITH latest_slots AS (
                 SELECT DISTINCT ON ("ID") *
@@ -400,7 +405,7 @@ def api_inventory():
                 WHERE "ID" >= 8000
                 ORDER BY "ID", last_updated DESC
             )
-        SELECT 
+        SELECT
                 inv."ID",
                 inv."Website_Name",
                 inv."Booked/Not Booked",
@@ -411,8 +416,8 @@ def api_inventory():
                 inv."Price",
                 inv."last_updated"
             FROM latest_slots inv
-            LEFT JOIN campaign_metadata.campaign_ledger cl 
-                ON inv."Booking ID" = cl."Booking ID" 
+            LEFT JOIN campaign_metadata.campaign_ledger cl
+                ON inv."Booking ID" = cl."Booking ID"
                 AND cl."Brand" = '{brand_code}'
             WHERE 1=1
             """
@@ -438,7 +443,8 @@ def api_inventory():
             base_query += f' ORDER BY inv."ID" LIMIT {limit}'
 
             try:
-                print(f"DEBUG: Executing query for {table} (brand: {brand_code})")
+                print(
+                    f"DEBUG: Executing query for {table} (brand: {brand_code})")
                 print(f"DEBUG: Query: {base_query[:200]}...")
                 print(f"DEBUG: Params: {params}")
                 cursor.execute(base_query, params)
