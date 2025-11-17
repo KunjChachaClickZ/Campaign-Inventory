@@ -302,8 +302,8 @@ def get_inventory_summary(start_date=None, end_date=None):
 def get_form_submissions_for_week(start_date, end_date):
     """Get form submissions count for each brand for the given week from data_products.sponsorship_bookings_form_submissions"""
     try:
-    conn = get_db_connection()
-    cursor = create_cursor(conn)
+        conn = get_db_connection()
+        cursor = create_cursor(conn)
     
         # Query the real form submissions table
         cursor.execute("""
